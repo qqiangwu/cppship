@@ -5,6 +5,8 @@
 #include <structopt/app.hpp>
 
 #include "cppship/cmd/fmt.h"
+#include "cppship/cmd/lint.h"
+#include "cppship/cppship.h"
 #include "cppship/exception.h"
 
 struct Lint : structopt::sub_command {
@@ -36,13 +38,18 @@ int run_impl(const CppShip& options)
         });
     }
 
+    if (const auto& opt = options.lint; opt.has_value()) {
+        return cmd::run_lint({ .all = *opt.all });
+    }
+
     return EXIT_SUCCESS;
 }
 
-int run(int argc, char* argv[])
+int run(std::span<char*> args)
 {
     try {
-        auto options = structopt::app("cppship").parse<CppShip>(argc, argv);
+        // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions): safe narrow conversion
+        auto options = structopt::app("cppship").parse<CppShip>(args.size(), args.data());
 
         return run_impl(options);
     } catch (const structopt::exception& e) {

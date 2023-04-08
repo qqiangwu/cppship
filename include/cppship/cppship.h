@@ -1,7 +1,9 @@
 #pragma once
 
+#include <span>
+
 namespace cppship {
 
-int run(int argc, char* argv[]);
+int run(std::span<char*> args);
 
 }

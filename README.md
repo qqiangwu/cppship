@@ -22,3 +22,12 @@ cppship fmt -f # fix it
 cppship fmt -a
 cppship fmt -a -f
 ```
+
+## lint
+We will use `clang-tidy` to lint your code
+
+```bash
+# by default, only lint files changed since last commit
+cppship lint
+cppship lint -a # lint all
+```

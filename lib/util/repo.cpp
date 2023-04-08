@@ -45,10 +45,7 @@ std::set<fs::path> cppship::list_all_files()
         }
 
         for (const fs::directory_entry& e : fs::recursive_directory_iterator { dir }) {
-            constexpr std::array kSourceExtension {
-                ".cpp",
-                ".h"
-            };
+            constexpr std::array kSourceExtension { ".cpp", ".h" };
 
             if (ranges::contains(kSourceExtension, e.path().extension())) {
                 files.insert(e.path());
@@ -59,7 +56,4 @@ std::set<fs::path> cppship::list_all_files()
     return files;
 }
 
-std::set<fs::path> cppship::list_changed_files(std::string_view commit)
-{
-    return list_all_files();
-}
+std::set<fs::path> cppship::list_changed_files(std::string_view /* commit */) { return list_all_files(); }

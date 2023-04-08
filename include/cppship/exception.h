@@ -21,10 +21,7 @@ public:
     {
     }
 
-    std::string_view cmd() const noexcept
-    {
-        return mCmd;
-    }
+    [[nodiscard]] std::string_view cmd() const noexcept { return mCmd; }
 
 private:
     std::string mCmd;

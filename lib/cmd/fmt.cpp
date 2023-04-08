@@ -1,9 +1,9 @@
 #include "cppship/cmd/fmt.h"
 
-#include <cstdlib>
 #include <iostream>
 #include <string_view>
 
+#include <boost/process/system.hpp>
 #include <fmt/core.h>
 
 #include "cppship/util/repo.h"
@@ -21,7 +21,8 @@ int cmd::run_fmt(const FmtOptions& options)
     for (const auto& file : files) {
         std::cout << "format file: " << file << std::endl;
 
-        const int e = std::system(fmt::format("{} {} {}", kFmtCmd, file.c_str(), (options.fix ? "-i" : "-n --Werror")).c_str());
+        const int e = boost::process::system(
+            fmt::format("{} {} {}", kFmtCmd, file.c_str(), (options.fix ? "-i" : "-n --Werror")).c_str());
         if (e != 0) {
             r = EXIT_FAILURE;
         }
