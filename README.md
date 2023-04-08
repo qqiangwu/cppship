@@ -6,4 +6,19 @@ cmake .. -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DCMAK
 
 cd ..
 cmake --build build -j8
+cmake --build build -j8 --target install
+```
+
+# Usage
+## format
+We will use `clang-format` to format our code
+
+```bash
+# by default, only format files changed since last commit
+cppship fmt # dry-run and warn
+cppship fmt -f # fix it
+
+# format all files
+cppship fmt -a
+cppship fmt -a -f
 ```
