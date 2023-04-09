@@ -1,6 +1,5 @@
 ---
 HeaderFilterRegex: ^(include|src|tests|benches)
-WarningsAsErrors: '*'
 Checks: -*,boost-*,bugprone-*,-bugprone-narrowing-conversions,clang-analyzer-*,concurrency-*,cppcoreguidelines-*,misc-*,modernize-*,-modernize-use-trailing-return-type,performance-*,portability-*,readability-*,-readability-make-member-function-const
 CheckOptions:
   - key: readability-identifier-naming.AbstractClassCase

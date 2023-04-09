@@ -9,15 +9,17 @@
 #include "cppship/cppship.h"
 #include "cppship/exception.h"
 
-struct Lint : structopt::sub_command {
-    std::optional<bool> all = false;
-};
-STRUCTOPT(Lint, all);
-
+// NOLINTBEGIN(readability-identifier-length): structopt macro has this
 struct Fmt : structopt::sub_command {
     std::optional<bool> all = false;
     std::optional<bool> fix = false;
 };
+
+struct Lint : structopt::sub_command {
+    std::optional<bool> all = false;
+    std::optional<int> j = 0;
+};
+STRUCTOPT(Lint, all);
 
 STRUCTOPT(Fmt, all, fix);
 
@@ -26,6 +28,7 @@ struct CppShip {
     Fmt fmt;
 };
 STRUCTOPT(CppShip, lint, fmt);
+// NOLINTEND(readability-identifier-length)
 
 namespace cppship {
 
@@ -39,7 +42,7 @@ int run_impl(const CppShip& options)
     }
 
     if (const auto& opt = options.lint; opt.has_value()) {
-        return cmd::run_lint({ .all = *opt.all });
+        return cmd::run_lint({ .all = *opt.all, .max_concurrency = *opt.j });
     }
 
     return EXIT_SUCCESS;
