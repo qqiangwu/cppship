@@ -1,6 +1,6 @@
 ---
 HeaderFilterRegex: ^(include|src|tests|benches)
-Checks: -*,boost-*,bugprone-*,-bugprone-narrowing-conversions,clang-analyzer-*,concurrency-*,cppcoreguidelines-*,misc-*,modernize-*,-modernize-use-trailing-return-type,performance-*,portability-*,readability-*,-readability-make-member-function-const
+Checks: -*,boost-*,bugprone-*,-bugprone-narrowing-conversions,-bugprone-easily-swappable-parameters,clang-analyzer-*,concurrency-*,cppcoreguidelines-*,misc-*,modernize-*,-modernize-use-trailing-return-type,performance-*,portability-*,readability-*,-readability-make-member-function-const
 CheckOptions:
   - key: readability-identifier-naming.AbstractClassCase
     value: CamelCase
@@ -39,6 +39,8 @@ CheckOptions:
 # -clang-analyzer-security.insecureAPI.rand, -clang-analyzer-security.insecureAPI.rand, -bugprone-unhandled-self-assignment,
 # -bugprone-narrowing-conversions
 #     Dup with cppcoreguidelines-narrowing-conversions
+# -bugprone-easily-swappable-parameters
+#     Too many false positives
 # -modernize-use-nodiscard,
 #     New C++17 feature, slightly polarizing. Would clutter codebase.
 # -modernize-use-trailing-return-type

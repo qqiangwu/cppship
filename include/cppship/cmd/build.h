@@ -22,6 +22,8 @@ struct ResolvedDeps {
 };
 
 struct Manifest {
+    std::string project;
+
     fs::path root;
 
     struct Dependency {
@@ -46,6 +48,9 @@ namespace detail {
 
     ResolvedDeps install_conan_packages(const Manifest& manifest);
 
+    std::string generate_build_ninji(const Manifest& manifest, const ResolvedDeps& deps);
+
+    void build_ninji(const BuildOptions& options);
 }
 
 Manifest load_manifest(const fs::path& manifest_file);

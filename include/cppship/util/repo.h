@@ -8,14 +8,14 @@
 
 namespace cppship {
 
-constexpr std::string_view kRepoConfigFile = "cppship.toml";
-constexpr std::string_view kIncludePath = "include";
-constexpr std::string_view kSrcPath = "src";
-constexpr std::string_view kLibPath = "lib";
-constexpr std::string_view kTestsPath = "tests";
-constexpr std::string_view kBenchesPath = "benches";
+inline constexpr std::string_view kRepoConfigFile = "cppship.toml";
+inline constexpr std::string_view kIncludePath = "include";
+inline constexpr std::string_view kSrcPath = "src";
+inline constexpr std::string_view kLibPath = "lib";
+inline constexpr std::string_view kTestsPath = "tests";
+inline constexpr std::string_view kBenchesPath = "benches";
 
-constexpr std::string_view kRepoHead = "HEAD";
+inline constexpr std::string_view kRepoHead = "HEAD";
 
 fs::path get_project_root();
 

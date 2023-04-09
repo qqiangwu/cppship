@@ -1,9 +1,9 @@
 #pragma once
 
-#include <string>
 #include <string_view>
 
-#include <boost/process/search_path.hpp>
+#include <boost/process/io.hpp>
+#include <boost/process/system.hpp>
 #include <fmt/core.h>
 
 #include "cppship/exception.h"
@@ -12,13 +12,14 @@ namespace cppship {
 
 inline void require_cmd(std::string_view cmd)
 {
-    (void)cmd;
-    /*
-    // TODO(wuqq): fix me later
-    std::string cmd_s { cmd };
-    if (boost::process::search_path(cmd_s).empty()) {
-        throw CmdNotFound { cmd_s };
-    }*/
+    using boost::process::null;
+    using boost::process::std_err;
+    using boost::process::std_out;
+
+    const int status = boost::process::system(fmt::format("type {}", cmd), std_err > null, std_out > null);
+    if (status != 0) {
+        throw CmdNotFound { std::string { cmd } };
+    }
 }
 
 }
