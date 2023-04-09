@@ -6,6 +6,7 @@
 #include <boost/process/system.hpp>
 #include <fmt/core.h>
 
+#include "cppship/util/cmd.h"
 #include "cppship/util/repo.h"
 
 constexpr std::string_view kFmtCmd = "clang-format";
@@ -14,6 +15,8 @@ using namespace cppship;
 
 int cmd::run_fmt(const FmtOptions& options)
 {
+    require_cmd(kFmtCmd);
+
     const auto files = options.all ? list_all_files() : list_changed_files(kRepoHead);
 
     int exit_code = 0;

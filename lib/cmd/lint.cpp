@@ -11,6 +11,7 @@
 #include <fmt/core.h>
 #include <range/v3/algorithm/any_of.hpp>
 
+#include "cppship/util/cmd.h"
 #include "cppship/util/repo.h"
 
 constexpr std::string_view kLintCmd = "clang-tidy";
@@ -19,6 +20,8 @@ using namespace cppship;
 
 int cmd::run_lint(const LintOptions& options)
 {
+    require_cmd(kLintCmd);
+
     const auto files = options.all ? list_all_files() : list_changed_files(kRepoHead);
     const auto concurrency = [max_concurrency = options.max_concurrency] {
         if (max_concurrency <= 0) {

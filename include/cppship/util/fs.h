@@ -1,5 +1,34 @@
 #pragma once
 
 #include <filesystem>
+#include <string_view>
+
+#include <fmt/std.h>
 
 namespace fs = std::filesystem;
+
+namespace cppship {
+
+class ScopedCurrentDir {
+public:
+    explicit ScopedCurrentDir(const fs::path& cwd)
+        : mPrevCwd(fs::current_path())
+    {
+        fs::current_path(cwd);
+    }
+
+    ~ScopedCurrentDir() { fs::current_path(mPrevCwd); }
+
+    ScopedCurrentDir(const ScopedCurrentDir&) = delete;
+    ScopedCurrentDir(ScopedCurrentDir&&) = delete;
+
+    ScopedCurrentDir& operator=(const ScopedCurrentDir&) = delete;
+    ScopedCurrentDir& operator=(ScopedCurrentDir&&) = delete;
+
+private:
+    fs::path mPrevCwd;
+};
+
+void write_file(const fs::path& file, std::string_view content);
+
+}
