@@ -1,8 +1,10 @@
 #include <cstdlib>
+#include <gsl/util>
 #include <iostream>
 #include <optional>
 
 #include <structopt/app.hpp>
+#include <gsl/narrow>
 
 #include "cppship/cmd/fmt.h"
 #include "cppship/cmd/lint.h"
@@ -51,8 +53,7 @@ int run_impl(const CppShip& options)
 int run(std::span<char*> args)
 {
     try {
-        // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions): safe narrow conversion
-        auto options = structopt::app("cppship").parse<CppShip>(args.size(), args.data());
+        auto options = structopt::app("cppship").parse<CppShip>(gsl::narrow_cast<int>(args.size()), args.data());
 
         return run_impl(options);
     } catch (const structopt::exception& e) {
