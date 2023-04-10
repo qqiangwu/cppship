@@ -1,18 +1,16 @@
 # Intro
 A cargo-like modern cpp build tools, aimed to combine all existing best practices, rather than re-inventing them from scratch.
 
-+ dependency management: [conan](https://conan.io/)
-+ build: ninja
++ dependency management: [conan2](https://conan.io/)
++ build: cmake
 + tests: google test
 + benches: google bench
 
 # Build
 ```bash
-mkdir build && cd build
-conan install .. --profile debug
-cmake .. -G "Ninja" -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DCMAKE_POLICY_DEFAULT_CMP0091=NEW -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+mkdir build
+cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
-cd ..
 cmake --build build -j8
 cmake --build build -j8 --target install
 ```

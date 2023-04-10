@@ -44,7 +44,7 @@ int cmd::run_lint(const LintOptions& options)
             fmt::print("lint file: {}\n", file.c_str());
 
             return boost::process::system(
-                fmt::format("{} {} -p build --warnings-as-errors=true", kLintCmd, file.c_str()).c_str());
+                fmt::format("{} {} -p build --warnings-as-errors=true --quiet", kLintCmd, file.c_str()).c_str());
         });
         tasks.push_back(std::move(fut));
     }
