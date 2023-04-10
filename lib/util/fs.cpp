@@ -10,6 +10,6 @@ void cppship::write_file(const fs::path& file, std::string_view content)
     ofs.flush();
 
     if (!ofs) {
-        throw Error { fmt::format("write file {} failed", file) };
+        throw Error { fmt::format("write file {} failed", file.string()) };
     }
 }

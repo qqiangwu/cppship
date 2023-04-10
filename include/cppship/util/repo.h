@@ -19,6 +19,7 @@ inline constexpr std::string_view kRepoHead = "HEAD";
 
 fs::path get_project_root();
 
+std::set<fs::path> list_sources(std::string_view dir);
 std::set<fs::path> list_all_files();
 std::set<fs::path> list_changed_files(std::string_view commit);
 

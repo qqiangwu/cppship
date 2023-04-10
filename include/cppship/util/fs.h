@@ -3,8 +3,6 @@
 #include <filesystem>
 #include <string_view>
 
-#include <fmt/std.h>
-
 namespace fs = std::filesystem;
 
 namespace cppship {

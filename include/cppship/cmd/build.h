@@ -1,12 +1,15 @@
 #pragma once
 
+#include <filesystem>
 #include <map>
 #include <string>
 #include <vector>
 
-#include <toml.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
 
+#include "cppship/core/manifest.h"
 #include "cppship/util/fs.h"
+#include "cppship/util/repo.h"
 
 namespace cppship::cmd {
 
@@ -14,54 +17,36 @@ struct BuildOptions {
     int max_concurrency = 0;
 };
 
-struct ResolvedDeps {
-    std::vector<std::string> includes;
-    std::vector<std::string> defines;
-    std::vector<std::string> lib_dirs;
-    std::vector<std::string> libs;
+struct BuildContext {
+    std::string profile = "Debug";
+
+    fs::path root = get_project_root();
+    fs::path build_dir = root / "build";
+    fs::path profile_dir = build_dir / boost::to_lower_copy(profile);
+    fs::path metafile = root / "cppship.toml";
+    fs::path lockfile = root / "cppship.lock";
+
+    fs::path conan_file = build_dir / "conanfile.txt";
+    fs::path conan_profile_path = build_dir / ("conan_profile." + profile);
+
+    Manifest manifest { metafile };
+
+    [[nodiscard]] bool is_expired(const fs::path& path) const
+    {
+        return !fs::exists(path) || fs::last_write_time(path) < fs::last_write_time(metafile);
+    }
 };
-
-struct Manifest {
-    std::string project;
-
-    fs::path root;
-
-    struct Dependency {
-        std::string version;
-    };
-    std::map<std::string, Dependency> dependencies;
-};
-
-namespace detail {
-
-    bool lock_file_expired(const Manifest& manifest, const fs::path& lockfile);
-
-    void lock_dependencies(const fs::path& lockfile, const ResolvedDeps& deps);
-
-    ResolvedDeps load_cached_dependencies(const fs::path& lockfile);
-
-    void install_conan_generator(const Manifest& manifest);
-
-    std::string generate_conan_requires(const Manifest& manifest);
-
-    void generate_conan_file(const Manifest& manifest);
-
-    ResolvedDeps install_conan_packages(const Manifest& manifest);
-
-    std::string generate_build_ninji(const Manifest& manifest, const ResolvedDeps& deps);
-
-    void build_ninji(const BuildOptions& options);
-}
-
-Manifest load_manifest(const fs::path& manifest_file);
-
-ResolvedDeps resolve_dependencies(const Manifest& manifest);
-
-void build(const ResolvedDeps& dependencies);
 
 int run_build(const BuildOptions& options);
 
-}
+void conan_detect_profile(const BuildContext& ctx);
 
-// NOLINTNEXTLINE(readability-identifier-length): make toml happy
-TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(cppship::cmd::ResolvedDeps, includes, defines, lib_dirs, libs);
+void conan_setup(const BuildContext& ctx);
+
+void conan_install(const BuildContext& ctx);
+
+void cmake_setup(const BuildContext& ctx);
+
+int cmake_build(const BuildContext& ctx, const BuildOptions& options);
+
+}
