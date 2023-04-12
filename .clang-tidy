@@ -1,6 +1,7 @@
 ---
 HeaderFilterRegex: ^(include|src|tests|benches)
 Checks: -*,boost-*,bugprone-*,-bugprone-narrowing-conversions,-bugprone-easily-swappable-parameters,clang-analyzer-*,concurrency-*,cppcoreguidelines-*,misc-*,modernize-*,-modernize-pass-by-value,-modernize-use-trailing-return-type,-modernize-use-nodiscard,performance-*,portability-*,readability-*,-readability-make-member-function-const,-readability-redundant-access-specifiers,-readability-convert-member-functions-to-static,-readability-magic-numbers
+WarningsAsErrors: '*'
 CheckOptions:
   - key: readability-identifier-naming.AbstractClassCase
     value: CamelCase
