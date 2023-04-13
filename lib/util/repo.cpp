@@ -38,7 +38,6 @@ std::set<fs::path> cppship::list_sources(std::string_view dir)
 
     std::set<fs::path> files;
     for (const fs::directory_entry& entry : fs::recursive_directory_iterator { root / dir }) {
-
         if (entry.path().extension() == ".cpp") {
             files.insert(entry.path());
         }
