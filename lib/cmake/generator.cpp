@@ -3,7 +3,6 @@
 #include "cppship/util/repo.h"
 
 #include <boost/algorithm/string.hpp>
-#include <boost/range/adaptor/transformed.hpp>
 #include <fmt/core.h>
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/transform.hpp>
@@ -131,6 +130,6 @@ include(CPack))",
 
 std::set<std::string> CmakeGenerator::list_sources_(std::string_view dir)
 {
-    return list_sources(dir) | boost::adaptors::transformed([](const auto& path) { return path.string(); })
-        | ranges::to<std::set<std::string>>();
+    auto sources = list_sources(dir);
+    return sources | transform([](const auto& path) { return path.string(); }) | ranges::to<std::set<std::string>>();
 }
