@@ -1,9 +1,6 @@
 #pragma once
 
-#include <filesystem>
-#include <map>
 #include <string>
-#include <vector>
 
 #include <boost/algorithm/string/case_conv.hpp>
 

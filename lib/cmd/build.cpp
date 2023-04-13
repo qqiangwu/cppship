@@ -6,11 +6,9 @@
 #include "cppship/util/fs.h"
 #include "cppship/util/repo.h"
 
-#include <exception>
 #include <fstream>
 #include <map>
 #include <sstream>
-#include <stdexcept>
 #include <string>
 
 #include <boost/algorithm/string/find.hpp>
