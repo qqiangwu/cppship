@@ -7,11 +7,8 @@
 #include "cppship/util/repo.h"
 
 #include <exception>
-#include <filesystem>
 #include <fstream>
-#include <ios>
 #include <map>
-#include <ostream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -118,8 +115,8 @@ void cmd::conan_setup(const BuildContext& ctx)
 
 void cmd::conan_install(const BuildContext& ctx)
 {
-    if (!ctx.is_expired(ctx.lockfile)) {
-        spdlog::info("[conan] lockfile is up to date, no need to install");
+    if (!ctx.is_expired(ctx.dependency_file)) {
+        spdlog::info("[conan] dependency is up to date, no need to install");
         return;
     }
 
@@ -132,12 +129,13 @@ void cmd::conan_install(const BuildContext& ctx)
         throw Error { "conan install failed" };
     }
 
-    write_file(ctx.lockfile, toml::format(toml::value(collect_deps(ctx.profile_dir / "conan", ctx.profile))));
+    write_file(ctx.dependency_file, toml::format(toml::value(collect_deps(ctx.profile_dir / "conan", ctx.profile))));
 }
 
 void cmd::cmake_setup(const BuildContext& ctx)
 {
-    const auto inventory_file = ctx.build_dir / "inventory";
+    const auto& inventory_file = ctx.inventory_file;
+
     const auto all_files = list_all_files();
     const auto files = all_files | rng::filter([](const auto& file) { return file.extension() == ".cpp"; })
         | rng::transform([](const auto& file) { return file.string(); }) | ranges::to<std::set<std::string>>();
@@ -152,7 +150,7 @@ void cmd::cmake_setup(const BuildContext& ctx)
     }
 
     spdlog::info("[config] generate cmake file");
-    CmakeGenerator gen(ctx.manifest, toml::get<ResolvedDependencies>(toml::parse(ctx.lockfile)));
+    CmakeGenerator gen(ctx.manifest, toml::get<ResolvedDependencies>(toml::parse(ctx.dependency_file)));
     write_file(ctx.build_dir / "CMakeLists.txt", std::move(gen).build());
 
     if (!fs::exists(ctx.profile_dir)) {

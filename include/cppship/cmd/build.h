@@ -24,10 +24,11 @@ struct BuildContext {
     fs::path build_dir = root / "build";
     fs::path profile_dir = build_dir / boost::to_lower_copy(profile);
     fs::path metafile = root / "cppship.toml";
-    fs::path lockfile = root / "cppship.lock";
 
     fs::path conan_file = build_dir / "conanfile.txt";
     fs::path conan_profile_path = build_dir / ("conan_profile." + profile);
+    fs::path inventory_file = build_dir / "inventory.toml";
+    fs::path dependency_file = build_dir / "dependency.toml";
 
     Manifest manifest { metafile };
 
