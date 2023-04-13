@@ -13,6 +13,7 @@
 #include "cppship/cmd/build.h"
 #include "cppship/cmd/clean.h"
 #include "cppship/cmd/fmt.h"
+#include "cppship/cmd/install.h"
 #include "cppship/cmd/lint.h"
 #include "cppship/cppship.h"
 #include "cppship/exception.h"
@@ -78,7 +79,12 @@ std::vector<SubCommand> build_commands()
         .default_value(gsl::narrow_cast<int>(std::thread::hardware_concurrency()));
 
     // clean
-    commands.emplace_back("clean", [](const ArgumentParser&) { return cmd::run_clean({}); });
+    auto& clean = commands.emplace_back("clean", [](const ArgumentParser&) { return cmd::run_clean({}); });
+    clean.parser.add_description("clean build");
+
+    // install
+    auto& install = commands.emplace_back("install", [](const ArgumentParser&) { return cmd::run_install({}); });
+    install.parser.add_description("install binary if exists");
 
     return commands;
 }

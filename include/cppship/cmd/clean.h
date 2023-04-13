@@ -2,10 +2,7 @@
 
 namespace cppship::cmd {
 
-struct CleanOptions {
-    bool all = false;
-    bool fix = false;
-};
+struct CleanOptions { };
 
 int run_clean(const CleanOptions& options);
 
