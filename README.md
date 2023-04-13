@@ -2,7 +2,7 @@
 A cargo-like modern cpp build tools, aimed to combine all existing best practices, rather than re-inventing them from scratch.
 
 + dependency management: [conan2](https://conan.io/)
-+ build: cmake
++ build: [cmake](https://cmake.org/)
 + tests: google test
 + benches: google bench
 
@@ -19,6 +19,16 @@ cmake --build build -j8 --target install
 ## build
 ```bash
 cppship build
+```
+
+## install
+```bash
+cppship install
+```
+
+## clean
+```bash
+cppship clean
 ```
 
 ## format
