@@ -15,6 +15,8 @@ inline constexpr std::string_view kLibPath = "lib";
 inline constexpr std::string_view kTestsPath = "tests";
 inline constexpr std::string_view kBenchesPath = "benches";
 
+inline constexpr std::string_view kBuildPath = "build";
+
 inline constexpr std::string_view kRepoHead = "HEAD";
 
 fs::path get_project_root();

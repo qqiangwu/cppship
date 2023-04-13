@@ -21,7 +21,7 @@ struct BuildContext {
     std::string profile = "Debug";
 
     fs::path root = get_project_root();
-    fs::path build_dir = root / "build";
+    fs::path build_dir = root / kBuildPath;
     fs::path profile_dir = build_dir / boost::to_lower_copy(profile);
     fs::path metafile = root / "cppship.toml";
 
