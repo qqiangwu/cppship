@@ -1,6 +1,6 @@
 ---
 HeaderFilterRegex: ^(include|src|tests|benches)
-Checks: -*,boost-*,bugprone-*,-bugprone-narrowing-conversions,-bugprone-easily-swappable-parameters,clang-analyzer-*,concurrency-*,cppcoreguidelines-*,misc-*,modernize-*,-modernize-pass-by-value,-modernize-use-trailing-return-type,-modernize-use-nodiscard,performance-*,portability-*,readability-*,-readability-make-member-function-const,-readability-redundant-access-specifiers,-readability-convert-member-functions-to-static,-readability-magic-numbers
+Checks: -*,boost-*,bugprone-*,-bugprone-narrowing-conversions,-bugprone-easily-swappable-parameters,clang-analyzer-*,concurrency-*,cppcoreguidelines-*,misc-*,modernize-*,-modernize-pass-by-value,-modernize-use-trailing-return-type,-modernize-use-nodiscard,performance-*,portability-*,readability-*,-readability-make-member-function-const,-readability-redundant-access-specifiers,-readability-convert-member-functions-to-static,-readability-magic-numbers,-readability-named-parameter
 WarningsAsErrors: '*'
 CheckOptions:
   - key: readability-identifier-naming.AbstractClassCase
@@ -34,6 +34,9 @@ CheckOptions:
   - key: readability-identifier-naming.ConstexprVariablePrefix
     value: k
 
+  - key: misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic
+    value: true
+
 #### Disabled checks and why: #####
 #
 # -readability-convert-member-functions-to-static
@@ -53,6 +56,8 @@ CheckOptions:
 # -modernize-use-trailing-return-type
 # -modernize-pass-by-value
 #     Useless
-# -readability-magic-numbers,
+# -readability-magic-numbers
 #     Let's not deal with people doing ridiculous things to hack around this. If it bites them, it bites them.
+# -readability-named-parameter
+#     Unused parameter is unnamed
 # -clang-diagnostic-implicit-int-float-conversion, -readability-make-member-function-const,

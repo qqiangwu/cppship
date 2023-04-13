@@ -1,50 +1,96 @@
+#include <algorithm>
 #include <cstdlib>
 #include <iostream>
 #include <optional>
 #include <string>
 #include <thread>
+#include <vector>
 
 #include <argparse/argparse.hpp>
 #include <gsl/narrow>
+#include <range/v3/algorithm/find_if.hpp>
 
 #include "cppship/cmd/build.h"
+#include "cppship/cmd/clean.h"
 #include "cppship/cmd/fmt.h"
 #include "cppship/cmd/lint.h"
 #include "cppship/cppship.h"
 #include "cppship/exception.h"
 
+using argparse::ArgumentParser;
+
 namespace cppship {
+
+using CommandRunner = int (*)(const ArgumentParser&);
+
+struct SubCommand {
+    std::string name;
+    ArgumentParser parser;
+    CommandRunner cmd_runner;
+
+    SubCommand(std::string_view cmd, CommandRunner runner)
+        : name(cmd)
+        , parser(name)
+        , cmd_runner(runner)
+    {
+    }
+
+    int run() { return cmd_runner(parser); }
+};
+
+std::vector<SubCommand> build_commands()
+{
+    std::vector<SubCommand> commands;
+
+    // lint
+    auto& lint = commands.emplace_back("lint", [](const ArgumentParser& cmd) {
+        return cmd::run_lint({ .all = cmd.get<bool>("all"), .max_concurrency = cmd.get<int>("jobs") });
+    });
+
+    lint.parser.add_description("run clang-tidy on the code");
+
+    lint.parser.add_argument("-a", "--all").help("run on all code or delta").default_value(false).implicit_value(true);
+    lint.parser.add_argument("-j", "--jobs")
+        .help("concurrent jobs, default is cpu cores")
+        .default_value(gsl::narrow_cast<int>(std::thread::hardware_concurrency()));
+
+    // fmt
+    auto& fmt = commands.emplace_back("fmt", [](const ArgumentParser& cmd) {
+        return cmd::run_fmt({
+            .all = cmd.get<bool>("all"),
+            .fix = cmd.get<bool>("fix"),
+        });
+    });
+
+    fmt.parser.add_description("run clang-format on the code");
+
+    fmt.parser.add_argument("-a", "--all").help("run on all code or delta").default_value(false).implicit_value(true);
+    fmt.parser.add_argument("-f", "--fix").help("fix or check-only(default").default_value(false).implicit_value(true);
+
+    // build
+    auto& build = commands.emplace_back(
+        "build", [](const ArgumentParser& cmd) { return cmd::run_build({ .max_concurrency = cmd.get<int>("jobs") }); });
+
+    build.parser.add_description("build the project");
+
+    build.parser.add_argument("-j", "--jobs")
+        .help("concurrent jobs, default is cpu cores")
+        .default_value(gsl::narrow_cast<int>(std::thread::hardware_concurrency()));
+
+    // clean
+    commands.emplace_back("clean", [](const ArgumentParser&) { return cmd::run_clean({}); });
+
+    return commands;
+}
 
 int run(std::span<char*> args)
 {
-    argparse::ArgumentParser app("cppship");
+    argparse::ArgumentParser app(args[0]);
 
-    argparse::ArgumentParser cmd_lint("lint");
-    cmd_lint.add_description("run clang-tidy on the code");
-
-    cmd_lint.add_argument("-a", "--all").help("run on all code or delta").default_value(false).implicit_value(true);
-    cmd_lint.add_argument("-j", "--jobs")
-        .help("concurrent jobs, default is cpu cores")
-        .default_value(gsl::narrow_cast<int>(std::thread::hardware_concurrency()));
-
-    app.add_subparser(cmd_lint);
-
-    argparse::ArgumentParser cmd_fmt("fmt");
-    cmd_fmt.add_description("run clang-format on the code");
-
-    cmd_fmt.add_argument("-a", "--all").help("run on all code or delta").default_value(false).implicit_value(true);
-    cmd_fmt.add_argument("-f", "--fix").help("fix or check-only(default").default_value(false).implicit_value(true);
-
-    app.add_subparser(cmd_fmt);
-
-    argparse::ArgumentParser cmd_build("build");
-    cmd_build.add_description("build the project");
-
-    cmd_build.add_argument("-j", "--jobs")
-        .help("concurrent jobs, default is cpu cores")
-        .default_value(gsl::narrow_cast<int>(std::thread::hardware_concurrency()));
-
-    app.add_subparser(cmd_build);
+    auto sub_commands = build_commands();
+    for (auto& cmd : sub_commands) {
+        app.add_subparser(cmd.parser);
+    }
 
     try {
         app.parse_args(gsl::narrow_cast<int>(args.size()), args.data());
@@ -55,22 +101,13 @@ int run(std::span<char*> args)
     }
 
     try {
-        if (app.is_subcommand_used("fmt")) {
-            return cmd::run_fmt({
-                .all = cmd_fmt.get<bool>("all"),
-                .fix = cmd_fmt.get<bool>("fix"),
-            });
+        auto iter = ranges::find_if(sub_commands, [&app](const auto& cmd) { return app.is_subcommand_used(cmd.name); });
+        if (iter == sub_commands.end()) {
+            std::cerr << app << std::endl;
+            return EXIT_FAILURE;
         }
 
-        if (app.is_subcommand_used("lint")) {
-            return cmd::run_lint({ .all = cmd_lint.get<bool>("all"), .max_concurrency = cmd_lint.get<int>("jobs") });
-        }
-
-        if (app.is_subcommand_used("build")) {
-            return cmd::run_build({ .max_concurrency = cmd_build.get<int>("jobs") });
-        }
-
-        std::cerr << app << std::endl;
+        return iter->run();
     } catch (const CmdNotFound& e) {
         fmt::print("{} required, please install it first\n", e.cmd());
     } catch (const Error& e) {
