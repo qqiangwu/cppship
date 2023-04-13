@@ -14,4 +14,4 @@ gtest/cci.20210126
 benchmark/1.7.1
 
 [generators]
-PremakeDeps
+CMakeDeps
