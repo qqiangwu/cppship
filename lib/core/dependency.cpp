@@ -24,7 +24,8 @@ constexpr int kFieldsInTargetLine = 3;
 
 Dependency cppship::parse_dep(std::string_view cmake_package, const fs::path& target_file)
 {
-    Dependency dep { .cmake_package { cmake_package } };
+    Dependency dep;
+    dep.cmake_package = cmake_package;
 
     std::ifstream ofs(target_file);
     if (!ofs) {
