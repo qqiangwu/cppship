@@ -11,6 +11,7 @@ namespace cppship {
 struct DeclaredDependency {
     std::string package;
     std::string version;
+    std::vector<std::string> components;
 };
 
 class Manifest {

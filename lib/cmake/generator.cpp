@@ -1,5 +1,6 @@
 #include "cppship/cmake/generator.h"
 #include "cppship/core/manifest.h"
+#include "cppship/exception.h"
 #include "cppship/util/repo.h"
 
 #include <boost/algorithm/string.hpp>
@@ -14,12 +15,26 @@ using namespace cppship;
 CmakeGenerator::CmakeGenerator(const Manifest& manifest, const ResolvedDependencies& deps)
     : mManifest(manifest)
 {
-    std::set<std::string> packages = manifest.dependencies()
-        | transform([](const DeclaredDependency& dep) { return dep.package; }) | ranges::to<std::set<std::string>>();
+    for (const auto& dep : manifest.dependencies()) {
+        const auto& resolved_dep = deps.at(dep.package);
 
-    for (const auto& [name, dep] : deps) {
-        if (packages.contains(dep.package)) {
-            mDeps.emplace(name, dep);
+        if (dep.components.empty()) {
+            mDeps.push_back(
+                { .cmake_package = resolved_dep.cmake_package, .cmake_targets = { resolved_dep.cmake_target } });
+        } else {
+            std::set<std::string> resolved_components(resolved_dep.components.begin(), resolved_dep.components.end());
+            std::vector<std::string> targets_required;
+
+            for (const auto& declared_component : dep.components) {
+                auto component = fmt::format("{}::{}", resolved_dep.cmake_package, declared_component);
+                if (!resolved_components.contains(component)) {
+                    throw Error { fmt::format("invalid component {} in manifest", declared_component) };
+                }
+
+                targets_required.push_back(std::move(component));
+            }
+
+            mDeps.push_back({ .cmake_package = resolved_dep.cmake_package, .cmake_targets = targets_required });
         }
     }
 }
@@ -64,7 +79,7 @@ void CmakeGenerator::emit_package_finders_()
 {
     mOut << "\n# Package finders\n";
 
-    for (const auto& [_, dep] : mDeps) {
+    for (const auto& dep : mDeps) {
         mOut << fmt::format("find_package({} REQUIRED)\n", dep.cmake_package);
     }
 }
@@ -84,8 +99,8 @@ void CmakeGenerator::add_lib_sources_()
          << fmt::format("target_include_directories({} PUBLIC ${{CMAKE_SOURCE_DIR}}/{})\n", mName, kIncludePath)
          << std::endl;
 
-    for (const auto& [_, dep] : mDeps) {
-        mOut << fmt::format("target_link_libraries({} PUBLIC {})\n", mName, dep.cmake_target);
+    for (const auto& dep : mDeps) {
+        mOut << fmt::format("target_link_libraries({} PUBLIC {})\n", mName, boost::join(dep.cmake_targets, " "));
     }
 
     mHasLib = true;
@@ -106,8 +121,9 @@ void CmakeGenerator::add_app_sources_()
     if (mHasLib) {
         mOut << fmt::format("target_link_libraries({0}_bin PRIVATE {0})\n", mName);
     } else {
-        for (const auto& [_, dep] : mDeps) {
-            mOut << fmt::format("target_link_libraries({}_bin PUBLIC {})\n", mName, dep.cmake_target);
+        for (const auto& dep : mDeps) {
+            mOut << fmt::format(
+                "target_link_libraries({}_bin PUBLIC {})\n", mName, boost::join(dep.cmake_targets, " "));
         }
     }
 
@@ -125,7 +141,7 @@ void CmakeGenerator::add_test_sources_()
         return;
     }
 
-    mOut << "\n";
+    mOut << "\n # Tests\n";
     mOut << R"(file(GLOB srcs ${CMAKE_SOURCE_DIR}/tests/*.cpp)
 
 find_package(GTest REQUIRED)

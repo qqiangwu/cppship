@@ -34,10 +34,15 @@ private:
     std::set<std::string> list_sources_(std::string_view dir);
 
 private:
+    struct Dep {
+        std::string cmake_package;
+        std::vector<std::string> cmake_targets;
+    };
+
     std::ostringstream mOut;
 
     Manifest mManifest;
-    ResolvedDependencies mDeps;
+    std::vector<Dep> mDeps;
 
     std::string_view mName = mManifest.name();
 
