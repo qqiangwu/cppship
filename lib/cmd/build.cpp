@@ -1,5 +1,6 @@
 #include "cppship/cmd/build.h"
 #include "cppship/cmake/generator.h"
+#include "cppship/core/compiler.h"
 #include "cppship/core/dependency.h"
 #include "cppship/exception.h"
 #include "cppship/util/cmd.h"
@@ -75,11 +76,14 @@ void cmd::conan_detect_profile(const BuildContext& ctx)
     std::ifstream ifs(conan_default_profile_path);
     std::ofstream ofs(ctx.conan_profile_path);
     std::string line;
+    bool compiler_detected = false;
     while (std::getline(ifs, line)) {
         if (line.starts_with("build_type")) {
             line = fmt::format("build_type={}", ctx.profile);
         } else if (line.starts_with("compiler.cppstd")) {
             line = fmt::format("compiler.cppstd=20");
+        } else if (line.starts_with("compiler=")) {
+            compiler_detected = true;
         }
 
         if (boost::contains(line, "=")) {
@@ -88,6 +92,26 @@ void cmd::conan_detect_profile(const BuildContext& ctx)
 
         ofs << line << '\n';
     }
+
+    if (!compiler_detected) {
+        using namespace compiler;
+
+        compiler::CompilerInfo info;
+        if (info.id() == CompilerId::unknown) {
+            throw Error { "cannot detect compiler" };
+        }
+
+        status("dependency", "detect compiler={}", to_string(info.id()));
+        status("dependency", "detect compiler.version={}", info.version());
+        status("dependency", "detect compiler.cppstd=20");
+        status("dependency", "detect compiler.libcxx={}", info.libcxx());
+
+        ofs << fmt::format("compiler={}\n", to_string(info.id()))
+            << fmt::format("compiler.version={}\n", info.version()) << fmt::format("compiler.cppstd=20\n")
+            << fmt::format("compiler.libcxx={}\n", info.libcxx());
+    }
+
+    ofs.flush();
 
     if (!ifs.eof() || !ofs) {
         throw Error { "generate conan profile failed" };

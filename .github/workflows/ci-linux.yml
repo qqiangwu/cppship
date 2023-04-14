@@ -40,5 +40,11 @@ jobs:
       # Install your program with the given configuration
       run: cmake --install ${{github.workspace}}/build --config ${{ matrix.build_type }}
 
+    - name: Test
+      run: cd build && ctest && cd ..
+
     - name: Run cppship
       run: cppship
+
+    - name: Test cppship
+      run: rm -rf build && cppship build && cppship run && cppship test && cppship clean

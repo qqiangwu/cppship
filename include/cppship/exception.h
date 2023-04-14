@@ -27,4 +27,22 @@ private:
     std::string mCmd;
 };
 
+class RunCmdFailed : public Error {
+public:
+    RunCmdFailed(const int status, std::string_view cmd)
+        : Error("run cmd failed")
+        , mStatus(status)
+        , mCmd(cmd)
+    {
+    }
+
+    int status() const { return mStatus; }
+
+    std::string_view cmd() const { return mCmd; }
+
+private:
+    int mStatus;
+    std::string mCmd;
+};
+
 }
