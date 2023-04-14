@@ -2,4 +2,4 @@
 
 #include <iostream>
 
-int main(int argc, char** argv) { return cppship::run(std::span<char*>(argv, argc)); }
+int main(int argc, const char** argv) { return cppship::run(std::span<const char*>(argv, argc)); }

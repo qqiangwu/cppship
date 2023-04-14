@@ -13,6 +13,7 @@
 #include "cppship/cmd/fmt.h"
 #include "cppship/cmd/install.h"
 #include "cppship/cmd/lint.h"
+#include "cppship/cmd/run.h"
 #include "cppship/cppship.h"
 #include "cppship/exception.h"
 
@@ -84,10 +85,15 @@ std::vector<SubCommand> build_commands()
     auto& install = commands.emplace_back("install", [](const ArgumentParser&) { return cmd::run_install({}); });
     install.parser.add_description("install binary if exists");
 
+    // run
+    auto& run = commands.emplace_back("run", [](const ArgumentParser&) { return cmd::run_run({}); });
+
+    run.parser.add_description("run binary");
+
     return commands;
 }
 
-int run(std::span<char*> args)
+int run(std::span<const char*> args)
 {
     argparse::ArgumentParser app(args[0]);
 
