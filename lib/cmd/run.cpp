@@ -30,6 +30,5 @@ int cmd::run_run(const RunOptions& options)
 
     const auto cmd = fmt::format("{} {}", bin_file.string(), options.args);
     spdlog::info("run `{}`", cmd);
-    boost::process::system(cmd);
-    return EXIT_SUCCESS;
+    return boost::process::system(cmd);
 }
