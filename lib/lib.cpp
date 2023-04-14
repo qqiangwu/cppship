@@ -14,6 +14,7 @@
 #include "cppship/cmd/install.h"
 #include "cppship/cmd/lint.h"
 #include "cppship/cmd/run.h"
+#include "cppship/cmd/test.h"
 #include "cppship/cppship.h"
 #include "cppship/exception.h"
 
@@ -90,6 +91,11 @@ std::vector<SubCommand> build_commands()
 
     run.parser.add_description("run binary");
 
+    // test
+    auto& test = commands.emplace_back("test", [](const ArgumentParser&) { return cmd::run_test({}); });
+
+    test.parser.add_description("run tests");
+
     return commands;
 }
 
@@ -105,7 +111,7 @@ int run(std::span<const char*> args)
     try {
         app.parse_args(gsl::narrow_cast<int>(args.size()), args.data());
     } catch (const std::runtime_error& err) {
-        std::cerr << err.what() << std::endl;
+        std::cerr << err.what() << "\n\n";
         std::cerr << app;
         return EXIT_FAILURE;
     }

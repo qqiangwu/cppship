@@ -32,6 +32,8 @@ std::string CmakeGenerator::build() &&
     add_lib_sources_();
     add_app_sources_();
 
+    add_test_sources_();
+
     emit_footer_();
 
     return mOut.str();
@@ -116,7 +118,31 @@ void CmakeGenerator::add_app_sources_()
 
 void CmakeGenerator::add_bin_sources_() { }
 
-void CmakeGenerator::add_test_sources_() { }
+void CmakeGenerator::add_test_sources_()
+{
+    const auto sources = list_sources_(kTestsPath);
+    if (sources.empty()) {
+        return;
+    }
+
+    mOut << "\n";
+    mOut << R"(file(GLOB srcs ${CMAKE_SOURCE_DIR}/tests/*.cpp)
+
+find_package(GTest REQUIRED)
+
+foreach(file ${srcs})
+    get_filename_component(file_stem ${file} NAME_WE)
+    set(test_target ${file_stem}_test)
+
+    add_executable(${test_target} ${file})
+
+    target_link_libraries(${test_target} PRIVATE ${PROJECT_NAME})
+    target_link_libraries(${test_target} PRIVATE GTest::gtest_main)
+
+    add_test(${test_target} ${test_target})
+endforeach())"
+         << "\n";
+}
 
 void CmakeGenerator::emit_footer_()
 {
