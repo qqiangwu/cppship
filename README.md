@@ -23,6 +23,11 @@ cmake --build build -j8 --target install
 cppship build
 ```
 
+## run
+```bash
+cppship run
+```
+
 ## install
 ```bash
 cppship install
