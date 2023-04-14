@@ -39,3 +39,6 @@ jobs:
     - name: Install
       # Install your program with the given configuration
       run: cmake --install ${{github.workspace}}/build --config ${{ matrix.build_type }}
+
+    - name: Run cppship
+      run: cppship
