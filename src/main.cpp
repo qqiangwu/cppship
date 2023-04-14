@@ -11,6 +11,10 @@
 #include "cppship/cppship.h"
 #include "cppship/exception.h"
 
+#ifndef CPPSHIP_VERSION
+#error "CPPSHIP_VERSION is required"
+#endif
+
 using namespace cppship;
 using argparse::ArgumentParser;
 
@@ -94,7 +98,7 @@ std::vector<SubCommand> build_commands()
 int main(int argc, const char* argv[])
 {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): known to be safe
-    argparse::ArgumentParser app(argv[0]);
+    argparse::ArgumentParser app(argv[0], CPPSHIP_VERSION);
 
     auto sub_commands = build_commands();
     for (auto& cmd : sub_commands) {
