@@ -37,7 +37,17 @@ Manifest::Manifest(const fs::path& file)
 
         const auto deps = get(value, "dependencies");
         for (const auto& [name, dep] : deps.as_table()) {
-            mDependencies.push_back({ .package = name, .version = dep.as_string().str });
+            mDependencies.push_back({ .package = name });
+
+            auto& pkg = mDependencies.back();
+            if (dep.is_string()) {
+                pkg.version = dep.as_string();
+            } else if (dep.is_table()) {
+                pkg.version = toml::find<std::string>(dep, "version");
+                pkg.components = toml::find<std::vector<std::string>>(dep, "components");
+            } else {
+                throw Error { fmt::format("invalid dependency {} in manifest", name) };
+            }
         }
     } catch (const std::out_of_range& e) {
         throw Error { e.what() };

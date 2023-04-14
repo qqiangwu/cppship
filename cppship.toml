@@ -5,7 +5,7 @@ edition = 2023
 authors = []
 
 [dependencies]
-boost = "1.81.0"
+boost = { version = "1.81.0", components = ["headers"] }
 toml11 = "3.7.1"
 fmt = "9.1.0"
 range-v3 = "0.12.0"
