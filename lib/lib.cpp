@@ -120,7 +120,7 @@ int run(std::span<const char*> args)
         auto iter = ranges::find_if(sub_commands, [&app](const auto& cmd) { return app.is_subcommand_used(cmd.name); });
         if (iter == sub_commands.end()) {
             std::cerr << app << std::endl;
-            return EXIT_FAILURE;
+            return EXIT_SUCCESS;
         }
 
         return iter->run();
