@@ -8,6 +8,7 @@
 #include "cppship/cmd/install.h"
 #include "cppship/core/manifest.h"
 #include "cppship/util/fs.h"
+#include "cppship/util/log.h"
 #include "cppship/util/repo.h"
 
 using namespace cppship;
@@ -23,12 +24,12 @@ int cmd::run_install(const InstallOptions&)
     Manifest manifest(ctx.metafile);
     const auto bin_file = ctx.profile_dir / manifest.name();
     if (!fs::exists(bin_file)) {
-        spdlog::warn("no binary to install");
+        warn("no binary to install");
         return EXIT_SUCCESS;
     }
 
     const auto dst = fmt::format("/usr/local/bin/{}", manifest.name());
-    spdlog::info("install {} to {}", bin_file.string(), dst);
+    status("install", "{} to {}", bin_file.string(), dst);
     fs::copy_file(bin_file, dst, fs::copy_options::overwrite_existing);
     return EXIT_SUCCESS;
 }

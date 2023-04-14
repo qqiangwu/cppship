@@ -7,6 +7,7 @@
 #include <fmt/core.h>
 
 #include "cppship/util/cmd.h"
+#include "cppship/util/log.h"
 #include "cppship/util/repo.h"
 
 constexpr std::string_view kFmtCmd = "clang-format";
@@ -21,8 +22,9 @@ int cmd::run_fmt(const FmtOptions& options)
 
     int exit_code = 0;
 
+    status("format", "run clang-format");
     for (const auto& file : files) {
-        std::cout << "format file: " << file << std::endl;
+        status("format", "{}", file.string());
 
         const int err = boost::process::system(
             fmt::format("{} {} {}", kFmtCmd, file.c_str(), (options.fix ? "-i" : "-n --Werror")).c_str());
@@ -32,7 +34,7 @@ int cmd::run_fmt(const FmtOptions& options)
     }
 
     if (exit_code == 0) {
-        std::cout << "all files are formated" << std::endl;
+        status("format", "all files are formated");
     }
 
     return exit_code;

@@ -9,6 +9,7 @@
 #include "cppship/cmd/run.h"
 #include "cppship/core/manifest.h"
 #include "cppship/util/fs.h"
+#include "cppship/util/log.h"
 #include "cppship/util/repo.h"
 
 using namespace cppship;
@@ -24,11 +25,11 @@ int cmd::run_run(const RunOptions& options)
     Manifest manifest(ctx.metafile);
     const auto bin_file = ctx.profile_dir / manifest.name();
     if (!fs::exists(bin_file)) {
-        spdlog::warn("no binary to run");
+        warn("no binary to run");
         return EXIT_SUCCESS;
     }
 
     const auto cmd = fmt::format("{} {}", bin_file.string(), options.args);
-    spdlog::info("run `{}`", cmd);
+    status("run", "{}", cmd);
     return boost::process::system(cmd);
 }

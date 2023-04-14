@@ -4,6 +4,7 @@
 #include "cppship/exception.h"
 #include "cppship/util/cmd.h"
 #include "cppship/util/fs.h"
+#include "cppship/util/log.h"
 #include "cppship/util/repo.h"
 
 #include <fstream>
@@ -45,10 +46,11 @@ int cmd::run_build(const BuildOptions& options)
 void cmd::conan_detect_profile(const BuildContext& ctx)
 {
     if (!ctx.is_expired(ctx.conan_profile_path)) {
-        spdlog::info("[conan] profile is up to date");
+        status("dependency", "profile is up to date");
         return;
     }
 
+    status("dependency", "detect profile {}", ctx.profile);
     pr::pstream out;
     int res = pr::system("conan profile path default", pr::std_out > out);
     if (res != 0) {
@@ -80,6 +82,10 @@ void cmd::conan_detect_profile(const BuildContext& ctx)
             line = fmt::format("compiler.cppstd=20");
         }
 
+        if (boost::contains(line, "=")) {
+            status("dependency", "profile {}", line);
+        }
+
         ofs << line << '\n';
     }
 
@@ -91,12 +97,11 @@ void cmd::conan_detect_profile(const BuildContext& ctx)
 void cmd::conan_setup(const BuildContext& ctx)
 {
     if (!ctx.is_expired(ctx.conan_file)) {
-        spdlog::info("[conan] conanfile is up to date");
+        status("dependency", "conanfile is up to date");
         return;
     }
 
-    spdlog::info("[conan] setup");
-
+    status("dependency", "generate conanfile");
     std::ostringstream oss;
     oss << "[requires]\n";
     for (const auto& dep : ctx.manifest.dependencies()) {
@@ -114,14 +119,14 @@ void cmd::conan_setup(const BuildContext& ctx)
 void cmd::conan_install(const BuildContext& ctx)
 {
     if (!ctx.is_expired(ctx.dependency_file)) {
-        spdlog::info("[conan] dependency is up to date, no need to install");
+        status("dependency", "dependency is up to date");
         return;
     }
 
     const auto cmd = fmt::format("conan install {} -of {}/conan -pr {} --build=missing", ctx.build_dir.string(),
         ctx.profile_dir.string(), ctx.conan_profile_path.string());
 
-    spdlog::info("[conan] install dependencies: {}", cmd);
+    status("dependency", "install dependencies: {}", cmd);
     int res = pr::system(cmd);
     if (res != 0) {
         throw Error { "conan install failed" };
@@ -142,12 +147,12 @@ void cmd::cmake_setup(const BuildContext& ctx)
         const auto saved = saved_inventory.at("files").as_array()
             | rng::transform([](const auto& val) { return val.as_string().str; });
         if (ranges::equal(files, saved) && !ctx.is_expired(inventory_file)) {
-            spdlog::info("[config] files not changed, skip");
+            status("config", "files not changed, skip");
             return;
         }
     }
 
-    spdlog::info("[config] generate cmake file");
+    status("config", "generate cmake files");
     CmakeGenerator gen(ctx.manifest, toml::get<ResolvedDependencies>(toml::parse(ctx.dependency_file)));
     write_file(ctx.build_dir / "CMakeLists.txt", std::move(gen).build());
 
@@ -159,7 +164,7 @@ void cmd::cmake_setup(const BuildContext& ctx)
         "cmake -B {} -S build -DCMAKE_BUILD_TYPE={} -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCONAN_GENERATORS_FOLDER={}",
         ctx.profile_dir.string(), ctx.profile, (ctx.profile_dir / "conan").string());
 
-    spdlog::info("[config] {}", cmd);
+    status("config", "config cmake: {}", cmd);
     const int res = boost::process::system(cmd, boost::process::shell);
     if (res != 0) {
         throw Error { "config cmake failed" };
@@ -174,6 +179,6 @@ int cmd::cmake_build(const BuildContext& ctx, const BuildOptions& options)
 {
     const auto cmd = fmt::format("cmake --build {} -j {}", ctx.profile_dir.string(), options.max_concurrency);
 
-    spdlog::info("[build] {}", cmd);
+    status("build", "{}", cmd);
     return boost::process::system(cmd, boost::process::shell);
 }
