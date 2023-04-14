@@ -37,9 +37,10 @@ Manifest::Manifest(const fs::path& file)
 
         const auto deps = get(value, "dependencies");
         for (const auto& [name, dep] : deps.as_table()) {
-            mDependencies.push_back({ .package = name });
+            auto& pkg = mDependencies.emplace_back();
 
-            auto& pkg = mDependencies.back();
+            pkg.package = name;
+
             if (dep.is_string()) {
                 pkg.version = dep.as_string();
             } else if (dep.is_table()) {
