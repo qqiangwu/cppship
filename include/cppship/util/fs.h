@@ -29,4 +29,6 @@ private:
 
 void write_file(const fs::path& file, std::string_view content);
 
+std::string read_file(const fs::path& file);
+
 }
