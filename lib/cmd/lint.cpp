@@ -11,6 +11,7 @@
 #include <range/v3/algorithm/any_of.hpp>
 
 #include "cppship/util/cmd.h"
+#include "cppship/util/log.h"
 #include "cppship/util/repo.h"
 
 constexpr std::string_view kLintCmd = "clang-tidy";
@@ -34,16 +35,18 @@ int cmd::run_lint(const LintOptions& options)
     std::vector<std::future<int>> tasks;
     tasks.reserve(files.size());
 
+    status("lint", "run clang-tidy");
     for (const auto& file : files) {
         if (file.extension() != ".cpp") {
             continue;
         }
 
         auto fut = pool.submit([file] {
-            fmt::print("lint file: {}\n", file.c_str());
+            status("lint", "{}", file.string());
 
             return boost::process::system(
-                fmt::format("{} {} -p build --warnings-as-errors=true --quiet", kLintCmd, file.c_str()).c_str());
+                fmt::format("{} {} -p build --warnings-as-errors=true --quiet", kLintCmd, file.c_str()).c_str(),
+                boost::process::std_err > boost::process::null);
         });
         tasks.push_back(std::move(fut));
     }

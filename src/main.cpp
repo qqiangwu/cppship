@@ -7,9 +7,11 @@
 #include <argparse/argparse.hpp>
 #include <gsl/narrow>
 #include <range/v3/algorithm/find_if.hpp>
+#include <spdlog/spdlog.h>
 
 #include "cppship/cppship.h"
 #include "cppship/exception.h"
+#include "cppship/util/log.h"
 
 #ifndef CPPSHIP_VERSION
 #error "CPPSHIP_VERSION is required"
@@ -96,7 +98,9 @@ std::vector<SubCommand> build_commands()
 }
 
 int main(int argc, const char* argv[])
-{
+try {
+    spdlog::set_pattern("%v");
+
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): known to be safe
     argparse::ArgumentParser app(argv[0], CPPSHIP_VERSION);
 
@@ -122,10 +126,13 @@ int main(int argc, const char* argv[])
 
         return iter->run();
     } catch (const CmdNotFound& e) {
-        fmt::print("{} required, please install it first\n", e.cmd());
+        error("{} required, please install it first", e.cmd());
     } catch (const Error& e) {
-        fmt::print("execute failed: {}\n", e.what());
+        error("execute failed: {}", e.what());
     }
 
+    return EXIT_FAILURE;
+} catch (const std::exception& e) {
+    error("unknown error {}", e.what());
     return EXIT_FAILURE;
 }

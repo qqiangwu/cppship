@@ -8,6 +8,7 @@
 #include "cppship/cmd/build.h"
 #include "cppship/cmd/test.h"
 #include "cppship/util/fs.h"
+#include "cppship/util/log.h"
 
 using namespace cppship;
 
@@ -22,6 +23,6 @@ int cmd::run_test(const TestOptions&)
     ScopedCurrentDir guard(ctx.profile_dir);
 
     const auto cmd = fmt::format("ctest");
-    spdlog::info("run `{}`", cmd);
+    status("test", "{}", cmd);
     return boost::process::system(cmd);
 }
