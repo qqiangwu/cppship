@@ -72,7 +72,7 @@ set(CMAKE_SOURCE_DIR "${CMAKE_SOURCE_DIR}/../")
 
 # add conan generator folder
 list(PREPEND CMAKE_PREFIX_PATH "${CONAN_GENERATORS_FOLDER}"))"
-         << std::endl;
+         << "\n";
 }
 
 void CmakeGenerator::emit_package_finders_()
@@ -115,6 +115,8 @@ void CmakeGenerator::add_app_sources_()
 
     mOut << "\n# APP\n" << fmt::format("add_executable({}_bin {})\n", mName, boost::join(sources, "\n"));
 
+    mOut << fmt::format(R"(target_compile_definitions({}_bin PRIVATE {}_VERSION="${{PROJECT_VERSION}}"))", mName,
+        boost::to_upper_copy(std::string(mName)));
     mOut << fmt::format("\ntarget_include_directories({}_bin PRIVATE ${{CMAKE_SOURCE_DIR}}/{})\n", mName, kSrcPath);
 
     mOut << "\n";
