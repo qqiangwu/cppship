@@ -1,0 +1,5 @@
+---
+Checks: -cppcoreguidelines-pro-type-vararg,-cppcoreguidelines-special-member-functions,-cppcoreguidelines-avoid-non-const-global-variables,-cppcoreguidelines-owning-memory
+InheritParentConfig: true
+
+# ignore checkers which gtest cannot pass
