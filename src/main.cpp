@@ -46,18 +46,34 @@ Profile get_profile(const ArgumentParser& cmd)
     return cmd.get<bool>("r") ? Profile::release : Profile::debug;
 }
 
+int get_concurrency(const ArgumentParser& cmd)
+{
+    const auto jobs = cmd.get<int>("jobs");
+    if (jobs <= 0) {
+        return gsl::narrow_cast<int>(std::thread::hardware_concurrency());
+    }
+
+    return std::min<int>(jobs, gsl::narrow_cast<int>(std::thread::hardware_concurrency()));
+}
+
 std::list<SubCommand> build_commands()
 {
     std::list<SubCommand> commands;
 
     // lint
     auto& lint = commands.emplace_back("lint", [](const ArgumentParser& cmd) {
-        return cmd::run_lint({ .all = cmd.get<bool>("all"), .max_concurrency = cmd.get<int>("jobs") });
+        return cmd::run_lint({ .all = cmd.get<bool>("all"),
+            .cached_only = cmd.get<bool>("cached"),
+            .max_concurrency = get_concurrency(cmd) });
     });
 
     lint.parser.add_description("run clang-tidy on the code");
 
-    lint.parser.add_argument("-a", "--all").help("run on all code or delta").default_value(false).implicit_value(true);
+    lint.parser.add_argument("-a", "--all")
+        .help("run on all code, default by diff")
+        .default_value(false)
+        .implicit_value(true);
+    lint.parser.add_argument("--cached").help("only lint staged changes").default_value(false).implicit_value(true);
     lint.parser.add_argument("-j", "--jobs")
         .help("concurrent jobs, default is cpu cores")
         .default_value(gsl::narrow_cast<int>(std::thread::hardware_concurrency()))
@@ -67,6 +83,7 @@ std::list<SubCommand> build_commands()
     auto& fmt = commands.emplace_back("fmt", [](const ArgumentParser& cmd) {
         return cmd::run_fmt({
             .all = cmd.get<bool>("all"),
+            .cached_only = cmd.get<bool>("cached"),
             .fix = cmd.get<bool>("fix"),
         });
     });
@@ -74,11 +91,12 @@ std::list<SubCommand> build_commands()
     fmt.parser.add_description("run clang-format on the code");
 
     fmt.parser.add_argument("-a", "--all").help("run on all code or delta").default_value(false).implicit_value(true);
+    fmt.parser.add_argument("--cached").help("only lint staged changes").default_value(false).implicit_value(true);
     fmt.parser.add_argument("-f", "--fix").help("fix or check-only(default)").default_value(false).implicit_value(true);
 
     // build
     auto& build = commands.emplace_back("build", [](const ArgumentParser& cmd) {
-        return cmd::run_build({ .max_concurrency = cmd.get<int>("jobs"), .profile = get_profile(cmd) });
+        return cmd::run_build({ .max_concurrency = get_concurrency(cmd), .profile = get_profile(cmd) });
     });
 
     build.parser.add_description("build the project");
