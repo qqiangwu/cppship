@@ -20,6 +20,19 @@ template <class T = toml::value> T get(const toml::value& value, const std::stri
     return toml::find<T>(value, key);
 }
 
+CxxStd get_cxx_std(const toml::value& value)
+{
+    const auto val = toml::find_or<int>(value, "std", 17);
+
+    for (const auto std : { CxxStd::cxx11, CxxStd::cxx14, CxxStd::cxx17, CxxStd::cxx20, CxxStd::cxx23 }) {
+        if (val == static_cast<int>(std)) {
+            return std;
+        }
+    }
+
+    throw Error { fmt::format("manifest invalid std {}", val) };
+}
+
 }
 
 Manifest::Manifest(const fs::path& file)
@@ -34,6 +47,7 @@ Manifest::Manifest(const fs::path& file)
 
         mName = get<std::string>(package, "name");
         mVersion = get<std::string>(package, "version");
+        mCxxStd = get_cxx_std(package);
 
         const auto deps = get(value, "dependencies");
         for (const auto& [name, dep] : deps.as_table()) {

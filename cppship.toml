@@ -1,8 +1,8 @@
 [package]
 name = "cppship"
 version = "0.0.1"
-edition = 2023
 authors = []
+std = 20
 
 [dependencies]
 boost = { version = "1.81.0", components = ["headers"] }
