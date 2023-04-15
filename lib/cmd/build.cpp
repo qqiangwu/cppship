@@ -132,10 +132,14 @@ void cmd::conan_setup(const BuildContext& ctx)
         oss << fmt::format("{}/{}\n", dep.package, dep.version);
     }
 
+    oss << '\n'
+        << "[test_requires]\n"
+        << "gtest/cci.20210126\n"
+        << "benchmark/1.7.1\n";
+
     oss << '\n';
     oss << "[generators]\n"
-        << "CMakeDeps\n"
-        << "CMakeToolchain\n";
+        << "CMakeDeps\n";
 
     write_file(ctx.conan_file, oss.str());
 }
