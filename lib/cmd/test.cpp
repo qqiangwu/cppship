@@ -12,14 +12,15 @@
 
 using namespace cppship;
 
-int cmd::run_test(const TestOptions&)
+int cmd::run_test(const TestOptions& options)
 {
-    const int result = run_build({ .max_concurrency = gsl::narrow_cast<int>(std::thread::hardware_concurrency()) });
+    const int result = run_build(
+        { .max_concurrency = gsl::narrow_cast<int>(std::thread::hardware_concurrency()), .profile = options.profile });
     if (result != 0) {
         return EXIT_FAILURE;
     }
 
-    BuildContext ctx;
+    BuildContext ctx(options.profile);
     ScopedCurrentDir guard(ctx.profile_dir);
 
     const auto cmd = fmt::format("ctest");

@@ -30,7 +30,7 @@ namespace pr = boost::process;
 
 int cmd::run_build(const BuildOptions& options)
 {
-    BuildContext ctx;
+    BuildContext ctx(options.profile);
     if (!fs::exists(ctx.build_dir)) {
         fs::create_directories(ctx.build_dir);
     }
@@ -46,6 +46,10 @@ int cmd::run_build(const BuildOptions& options)
 
 void cmd::conan_detect_profile(const BuildContext& ctx)
 {
+    if (!fs::exists(ctx.profile_dir)) {
+        fs::create_directories(ctx.profile_dir);
+    }
+
     if (!ctx.is_expired(ctx.conan_profile_path)) {
         status("dependency", "profile is up to date");
         return;
@@ -183,10 +187,6 @@ void cmd::cmake_setup(const BuildContext& ctx)
     status("config", "generate cmake files");
     CmakeGenerator gen(ctx.manifest, toml::get<ResolvedDependencies>(toml::parse(ctx.dependency_file)));
     write_file(ctx.build_dir / "CMakeLists.txt", std::move(gen).build());
-
-    if (!fs::exists(ctx.profile_dir)) {
-        fs::create_directories(ctx.profile_dir);
-    }
 
     const std::string cmd = fmt::format(
         "cmake -B {} -S build -DCMAKE_BUILD_TYPE={} -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCONAN_GENERATORS_FOLDER={}",

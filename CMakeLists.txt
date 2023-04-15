@@ -14,7 +14,7 @@ include(cmake/conan.cmake)
 conan_setup()
 
 # cpp warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-unused-parameter")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-unused-parameter -Wno-missing-field-initializers")
 
 add_subdirectory(lib)
 add_subdirectory(src)

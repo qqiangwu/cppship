@@ -13,14 +13,15 @@
 
 using namespace cppship;
 
-int cmd::run_install(const InstallOptions&)
+int cmd::run_install(const InstallOptions& options)
 {
-    const int result = run_build({ .max_concurrency = gsl::narrow_cast<int>(std::thread::hardware_concurrency()) });
+    const int result = run_build(
+        { .max_concurrency = gsl::narrow_cast<int>(std::thread::hardware_concurrency()), .profile = options.profile });
     if (result != 0) {
         return EXIT_FAILURE;
     }
 
-    BuildContext ctx;
+    BuildContext ctx(options.profile);
     Manifest manifest(ctx.metafile);
     const auto bin_file = ctx.profile_dir / manifest.name();
     if (!fs::exists(bin_file)) {

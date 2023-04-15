@@ -37,6 +37,15 @@ struct SubCommand {
     int run() { return cmd_runner(parser); }
 };
 
+Profile get_profile(const ArgumentParser& cmd)
+{
+    if (cmd.is_used("profile")) {
+        return parse_profile(cmd.get<std::string>("profile"));
+    }
+
+    return cmd.get<bool>("r") ? Profile::release : Profile::debug;
+}
+
 std::vector<SubCommand> build_commands()
 {
     std::vector<SubCommand> commands;
@@ -67,32 +76,44 @@ std::vector<SubCommand> build_commands()
     fmt.parser.add_argument("-f", "--fix").help("fix or check-only(default").default_value(false).implicit_value(true);
 
     // build
-    auto& build = commands.emplace_back(
-        "build", [](const ArgumentParser& cmd) { return cmd::run_build({ .max_concurrency = cmd.get<int>("jobs") }); });
+    auto& build = commands.emplace_back("build", [](const ArgumentParser& cmd) {
+        return cmd::run_build({ .max_concurrency = cmd.get<int>("jobs"), .profile = get_profile(cmd) });
+    });
 
     build.parser.add_description("build the project");
 
     build.parser.add_argument("-j", "--jobs")
         .help("concurrent jobs, default is cpu cores")
         .default_value(gsl::narrow_cast<int>(std::thread::hardware_concurrency()));
+    build.parser.add_argument("-r").help("build in release mode").default_value(false).implicit_value(true);
+    build.parser.add_argument("--profile").help("build with specific profile").default_value(kProfileDebug);
 
     // clean
     auto& clean = commands.emplace_back("clean", [](const ArgumentParser&) { return cmd::run_clean({}); });
     clean.parser.add_description("clean build");
 
     // install
-    auto& install = commands.emplace_back("install", [](const ArgumentParser&) { return cmd::run_install({}); });
+    auto& install = commands.emplace_back(
+        "install", [](const ArgumentParser& cmd) { return cmd::run_install({ .profile = get_profile(cmd) }); });
     install.parser.add_description("install binary if exists");
+    install.parser.add_argument("-r").help("build in release mode").default_value(false).implicit_value(true);
+    install.parser.add_argument("--profile").help("build with specific profile").default_value(kProfileDebug);
 
     // run
-    auto& run = commands.emplace_back("run", [](const ArgumentParser&) { return cmd::run_run({}); });
+    auto& run = commands.emplace_back(
+        "run", [](const ArgumentParser& cmd) { return cmd::run_run({ .profile = get_profile(cmd) }); });
 
     run.parser.add_description("run binary");
+    run.parser.add_argument("-r").help("build in release mode").default_value(false).implicit_value(true);
+    run.parser.add_argument("--profile").help("build with specific profile").default_value(kProfileDebug);
 
     // test
-    auto& test = commands.emplace_back("test", [](const ArgumentParser&) { return cmd::run_test({}); });
+    auto& test = commands.emplace_back(
+        "test", [](const ArgumentParser& cmd) { return cmd::run_test({ .profile = get_profile(cmd) }); });
 
     test.parser.add_description("run tests");
+    test.parser.add_argument("-r").help("build in release mode").default_value(false).implicit_value(true);
+    test.parser.add_argument("--profile").help("build with specific profile").default_value(kProfileDebug);
 
     return commands;
 }

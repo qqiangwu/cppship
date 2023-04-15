@@ -44,7 +44,11 @@ jobs:
       run: cd build && ctest && cd ..
 
     - name: Run cppship
-      run: cppship
-
-    - name: Test cppship
-      run: rm -rf build && cppship build && cppship run && cppship test && cppship clean
+      run: |
+        rm -rf build
+        type cppship
+        cppship
+        cppship build --profile ${{ matrix.build_type }}
+        cppship run --profile ${{ matrix.build_type }}
+        cppship test --profile ${{ matrix.build_type }}
+        cppship clean

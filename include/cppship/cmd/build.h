@@ -5,6 +5,7 @@
 #include <boost/algorithm/string/case_conv.hpp>
 
 #include "cppship/core/manifest.h"
+#include "cppship/core/profile.h"
 #include "cppship/util/fs.h"
 #include "cppship/util/repo.h"
 
@@ -12,6 +13,7 @@ namespace cppship::cmd {
 
 struct BuildOptions {
     int max_concurrency = 0;
+    Profile profile = Profile::debug;
 };
 
 struct BuildContext {
@@ -23,11 +25,16 @@ struct BuildContext {
     fs::path metafile = root / "cppship.toml";
 
     fs::path conan_file = build_dir / "conanfile.txt";
-    fs::path conan_profile_path = build_dir / ("conan_profile." + profile);
-    fs::path inventory_file = build_dir / "inventory.toml";
-    fs::path dependency_file = build_dir / "dependency.toml";
+    fs::path conan_profile_path = profile_dir / "conan_profile";
+    fs::path inventory_file = profile_dir / "inventory.toml";
+    fs::path dependency_file = profile_dir / "dependency.toml";
 
     Manifest manifest { metafile };
+
+    explicit BuildContext(Profile profile_)
+        : profile(to_string(profile_))
+    {
+    }
 
     [[nodiscard]] bool is_expired(const fs::path& path) const
     {
