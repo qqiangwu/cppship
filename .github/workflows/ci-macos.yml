@@ -1,0 +1,54 @@
+name: macOS
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        build_type: [ Release ]
+
+    # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
+    # You can convert this to a matrix build if you need cross-platform coverage.
+    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+    runs-on: macos-11
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install conan
+      run: pip3 install conan
+
+    - name: Configure CMake
+      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+
+    - name: Build
+      # Build your program with the given configuration
+      run: cmake --build ${{github.workspace}}/build --config ${{ matrix.build_type }}
+
+    - name: Install
+      # Install your program with the given configuration
+      run: cmake --install ${{github.workspace}}/build --config ${{ matrix.build_type }}
+
+    - name: Test
+      run: cd build && ctest && cd ..
+
+    - name: Run cppship
+      run: |
+        rm -rf build
+        type cppship
+        cppship
+        cppship build --profile ${{ matrix.build_type }}
+        cppship run --profile ${{ matrix.build_type }}
+        cppship test --profile ${{ matrix.build_type }}
+        cppship clean
