@@ -4,6 +4,7 @@ namespace cppship::cmd {
 
 struct FmtOptions {
     bool all = false;
+    bool cached_only = false;
     bool fix = false;
 };
 

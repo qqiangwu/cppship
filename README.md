@@ -57,6 +57,7 @@ We will use `clang-format` to format our code
 ```bash
 # by default, only format files changed since last commit
 cppship fmt # dry-run and warn
+cppship fmt --cached # only fmt git cached files
 cppship fmt -f # fix it
 
 # format all files
@@ -70,5 +71,6 @@ We will use `clang-tidy` to lint your code
 ```bash
 # by default, only lint files changed since last commit
 cppship lint
+cppship lint --cached # lint git cached files
 cppship lint -a # lint all
 ```

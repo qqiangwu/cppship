@@ -16,8 +16,7 @@ using namespace cppship;
 
 int cmd::run_run(const RunOptions& options)
 {
-    const int result = run_build(
-        { .max_concurrency = gsl::narrow_cast<int>(std::thread::hardware_concurrency()), .profile = options.profile });
+    const int result = run_build({ .profile = options.profile });
     if (result != 0) {
         return EXIT_FAILURE;
     }

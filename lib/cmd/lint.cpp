@@ -22,14 +22,9 @@ int cmd::run_lint(const LintOptions& options)
 {
     require_cmd(kLintCmd);
 
-    const auto files = options.all ? list_all_files() : list_changed_files(kRepoHead);
-    const auto concurrency = [max_concurrency = options.max_concurrency] {
-        if (max_concurrency <= 0) {
-            return std::thread::hardware_concurrency();
-        }
-
-        return std::min(std::thread::hardware_concurrency(), static_cast<unsigned>(max_concurrency));
-    }();
+    ScopedCurrentDir guard(get_project_root());
+    const auto files = options.all ? list_all_files() : list_changed_files({ .cached_only = options.cached_only });
+    const auto concurrency = options.max_concurrency;
 
     BS::thread_pool_light pool(concurrency);
     std::vector<std::future<int>> tasks;

@@ -1,8 +1,10 @@
 #pragma once
 
 #include <string>
+#include <thread>
 
 #include <boost/algorithm/string/case_conv.hpp>
+#include <gsl/narrow>
 
 #include "cppship/core/manifest.h"
 #include "cppship/core/profile.h"
@@ -12,7 +14,7 @@
 namespace cppship::cmd {
 
 struct BuildOptions {
-    int max_concurrency = 0;
+    int max_concurrency = gsl::narrow_cast<int>(std::thread::hardware_concurrency());
     Profile profile = Profile::debug;
 };
 
