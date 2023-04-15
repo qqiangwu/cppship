@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -20,6 +21,17 @@ enum class CxxStd { cxx11 = 11, cxx14 = 14, cxx17 = 17, cxx20 = 20, cxx23 = 23 }
 
 inline constexpr auto format_as(CxxStd std) { return fmt::underlying(std); }
 
+inline constexpr std::optional<CxxStd> to_cxx_std(int val) noexcept
+{
+    for (const auto std : { CxxStd::cxx11, CxxStd::cxx14, CxxStd::cxx17, CxxStd::cxx20, CxxStd::cxx23 }) {
+        if (val == static_cast<int>(std)) {
+            return std;
+        }
+    }
+
+    return std::nullopt;
+}
+
 class Manifest {
 public:
     explicit Manifest(const fs::path& file);
@@ -39,5 +51,7 @@ private:
 
     std::vector<DeclaredDependency> mDependencies;
 };
+
+void generate_manifest(std::string_view name, CxxStd std, const fs::path& dir);
 
 }

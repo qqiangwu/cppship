@@ -52,3 +52,20 @@ jobs:
         cppship run --profile ${{ matrix.build_type }}
         cppship test --profile ${{ matrix.build_type }}
         cppship clean
+
+    - name: Cppship init app
+      run: |
+        mkdir .bin && cd .bin
+        cppship init . --name app
+        cppship build
+        cppship test
+        cppship install
+        type app
+        cd ..
+
+    - name: Cppship init lib
+      run: |
+        mkdir .lib && cd .lib
+        cppship init . --name lib --lib
+        cppship build
+        cppship test

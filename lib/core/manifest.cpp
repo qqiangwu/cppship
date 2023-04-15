@@ -3,9 +3,9 @@
 #include "cppship/util/fs.h"
 
 #include <stdexcept>
+
+#include <fmt/os.h>
 #include <toml.hpp>
-#include <toml/get.hpp>
-#include <toml/value.hpp>
 
 using namespace cppship;
 
@@ -23,14 +23,12 @@ template <class T = toml::value> T get(const toml::value& value, const std::stri
 CxxStd get_cxx_std(const toml::value& value)
 {
     const auto val = toml::find_or<int>(value, "std", 17);
-
-    for (const auto std : { CxxStd::cxx11, CxxStd::cxx14, CxxStd::cxx17, CxxStd::cxx20, CxxStd::cxx23 }) {
-        if (val == static_cast<int>(std)) {
-            return std;
-        }
+    const auto std = to_cxx_std(val);
+    if (!std) {
+        throw Error { fmt::format("manifest invalid std {}", val) };
     }
 
-    throw Error { fmt::format("manifest invalid std {}", val) };
+    return *std;
 }
 
 }
@@ -68,5 +66,32 @@ Manifest::Manifest(const fs::path& file)
         throw Error { e.what() };
     } catch (const toml::exception& e) {
         throw Error { fmt::format("invalid manifest format: {}", e.what()) };
+    }
+}
+
+void cppship::generate_manifest(std::string_view name, CxxStd std, const fs::path& dir)
+{
+    if (!fs::exists(dir)) {
+        fs::create_directory(dir);
+    }
+
+    const auto manifest = dir / "cppship.toml";
+    if (fs::exists(manifest)) {
+        throw Error { "manifest already exist" };
+    }
+
+    try {
+        auto out = fmt::output_file(manifest.string());
+
+        out.print("[package]\n");
+        out.print(R"(name = "{}")", name);
+        out.print("\n");
+        out.print(R"(version = "0.1.0")");
+        out.print("\nstd = {}\n", std);
+        out.print("\n[dependencies]\n");
+
+        out.close();
+    } catch (const std::system_error& e) {
+        throw Error { fmt::format("write filed {} failed: {}", manifest.string(), e.what()) };
     }
 }
