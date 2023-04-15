@@ -51,4 +51,6 @@ jobs:
         cppship build --profile ${{ matrix.build_type }}
         cppship run --profile ${{ matrix.build_type }}
         cppship test --profile ${{ matrix.build_type }}
+        cppship fmt -a
+        cppship lint -a
         cppship clean
