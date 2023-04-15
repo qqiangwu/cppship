@@ -9,6 +9,9 @@ A cargo-like modern cpp build tools, aimed to combine all existing best practice
 + tests: google test
 + benches: google bench
 
+# Demo
+![demo](https://user-images.githubusercontent.com/2892107/232225706-a5f8ae7f-b8c3-49bd-8f74-2bf2be79740b.gif)
+
 # Build
 ```bash
 mkdir build
@@ -21,12 +24,21 @@ cmake --build build -j8 --target install
 # Usage
 ## build
 ```bash
+# debug build
 cppship build
+
+# release build
+cppship build -r
 ```
 
 ## run
 ```bash
 cppship run
+```
+
+## test
+```
+cppship test
 ```
 
 ## install
