@@ -1,8 +1,8 @@
 #include <cstdlib>
 #include <iostream>
+#include <list>
 #include <string>
 #include <thread>
-#include <vector>
 
 #include <argparse/argparse.hpp>
 #include <gsl/narrow>
@@ -46,9 +46,9 @@ Profile get_profile(const ArgumentParser& cmd)
     return cmd.get<bool>("r") ? Profile::release : Profile::debug;
 }
 
-std::vector<SubCommand> build_commands()
+std::list<SubCommand> build_commands()
 {
-    std::vector<SubCommand> commands;
+    std::list<SubCommand> commands;
 
     // lint
     auto& lint = commands.emplace_back("lint", [](const ArgumentParser& cmd) {
@@ -60,7 +60,8 @@ std::vector<SubCommand> build_commands()
     lint.parser.add_argument("-a", "--all").help("run on all code or delta").default_value(false).implicit_value(true);
     lint.parser.add_argument("-j", "--jobs")
         .help("concurrent jobs, default is cpu cores")
-        .default_value(gsl::narrow_cast<int>(std::thread::hardware_concurrency()));
+        .default_value(gsl::narrow_cast<int>(std::thread::hardware_concurrency()))
+        .scan<'d', int>();
 
     // fmt
     auto& fmt = commands.emplace_back("fmt", [](const ArgumentParser& cmd) {
@@ -73,7 +74,7 @@ std::vector<SubCommand> build_commands()
     fmt.parser.add_description("run clang-format on the code");
 
     fmt.parser.add_argument("-a", "--all").help("run on all code or delta").default_value(false).implicit_value(true);
-    fmt.parser.add_argument("-f", "--fix").help("fix or check-only(default").default_value(false).implicit_value(true);
+    fmt.parser.add_argument("-f", "--fix").help("fix or check-only(default)").default_value(false).implicit_value(true);
 
     // build
     auto& build = commands.emplace_back("build", [](const ArgumentParser& cmd) {
@@ -84,7 +85,8 @@ std::vector<SubCommand> build_commands()
 
     build.parser.add_argument("-j", "--jobs")
         .help("concurrent jobs, default is cpu cores")
-        .default_value(gsl::narrow_cast<int>(std::thread::hardware_concurrency()));
+        .default_value(gsl::narrow_cast<int>(std::thread::hardware_concurrency()))
+        .scan<'d', int>();
     build.parser.add_argument("-r").help("build in release mode").default_value(false).implicit_value(true);
     build.parser.add_argument("--profile").help("build with specific profile").default_value(kProfileDebug);
 
@@ -123,7 +125,7 @@ try {
     spdlog::set_pattern("%v");
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): known to be safe
-    argparse::ArgumentParser app(argv[0], CPPSHIP_VERSION);
+    argparse::ArgumentParser app("cppship", CPPSHIP_VERSION);
 
     auto sub_commands = build_commands();
     for (auto& cmd : sub_commands) {
