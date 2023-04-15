@@ -56,6 +56,16 @@ int get_concurrency(const ArgumentParser& cmd)
     return std::min<int>(jobs, gsl::narrow_cast<int>(std::thread::hardware_concurrency()));
 }
 
+CxxStd parse_cxx_std(const int value)
+{
+    const auto cxx = to_cxx_std(value);
+    if (!cxx) {
+        throw Error { fmt::format("invalid std argument: {}", value) };
+    }
+
+    return *cxx;
+}
+
 std::list<SubCommand> build_commands()
 {
     std::list<SubCommand> commands;
@@ -135,6 +145,38 @@ std::list<SubCommand> build_commands()
     test.parser.add_argument("-r").help("build in release mode").default_value(false).implicit_value(true);
     test.parser.add_argument("--profile").help("build with specific profile").default_value(kProfileDebug);
 
+    // init
+    auto& init = commands.emplace_back("init", [](const ArgumentParser& cmd) {
+        cmd::InitOptions options {
+            .vcs = cmd.get<bool>("vcs"), .lib = cmd.get<bool>("lib"), .bin = cmd.get<bool>("bin")
+        };
+        if (const std::string& dir = cmd.get("path"); dir == ".") {
+            options.dir = fs::current_path();
+        } else {
+            options.dir = fs::current_path() / dir;
+        }
+        if (cmd.is_used("name")) {
+            options.name = cmd.get("name");
+        }
+        if (cmd.is_used("std")) {
+            options.std = parse_cxx_std(cmd.get<int>("std"));
+        }
+
+        return run_init(options);
+    });
+
+    init.parser.add_description("create a new package");
+    init.parser.add_argument("path").help("the path to create package");
+    init.parser.add_argument("--vcs").help("init a git or not").default_value(false).implicit_value(true);
+    init.parser.add_argument("--lib").help("use a library template").default_value(false).implicit_value(true);
+    init.parser.add_argument("--bin").help("use a bin template (default)").default_value(false).implicit_value(true);
+    init.parser.add_argument("--name").help("package name, default to directory name").metavar("name");
+    init.parser.add_argument("--std")
+        .help("cpp std to use, valid values are 11/14/17/20/23")
+        .default_value(fmt::underlying(CxxStd::cxx17))
+        .metavar("cxxstd")
+        .scan<'d', int>();
+
     return commands;
 }
 
@@ -169,7 +211,7 @@ try {
     } catch (const CmdNotFound& e) {
         error("{} required, please install it first", e.cmd());
     } catch (const Error& e) {
-        error("execute failed: {}", e.what());
+        error("{}", e.what());
     }
 
     return EXIT_FAILURE;

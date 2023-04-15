@@ -10,9 +10,12 @@ A cargo-like modern cpp build tools, aimed to combine all existing best practice
 + benches: google bench
 
 # Demo
-![demo](https://user-images.githubusercontent.com/2892107/232225706-a5f8ae7f-b8c3-49bd-8f74-2bf2be79740b.gif)
+![demo](https://user-images.githubusercontent.com/2892107/232242145-bcc4bb3f-21c0-41a6-919a-9b5f5b196246.gif)
 
 # Build
+## CMake
+We can use cmake to build `cppship`
+
 ```bash
 mkdir build
 cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
@@ -21,7 +24,38 @@ cmake --build build -j8
 cmake --build build -j8 --target install
 ```
 
+## Cppship
+We can also to use cppship to build `cppship`
+
+```bash
+# debug build
+cppship build
+
+# release build
+cppship build -r
+
+# test
+cppship test
+
+# install
+cppship install
+```
+
 # Usage
+## Init
+```bash
+# init a binary
+cppship init demo
+cd demo
+cppship run
+cppship test
+
+# init a library
+cppship init demolib --lib
+cd demolib
+cppship build
+```
+
 ## build
 ```bash
 # debug build
