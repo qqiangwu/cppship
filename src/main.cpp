@@ -208,8 +208,7 @@ try {
     try {
         app.parse_args(argc, argv);
     } catch (const std::runtime_error& err) {
-        std::cerr << err.what() << "\n\n";
-        std::cerr << app;
+        error("{}\n\n{}", err.what(), app.help().str());
         return EXIT_FAILURE;
     }
 
