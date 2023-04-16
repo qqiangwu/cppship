@@ -197,7 +197,6 @@ int main(int argc, const char* argv[])
 try {
     spdlog::set_pattern("%v");
 
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): known to be safe
     argparse::ArgumentParser app("cppship", CPPSHIP_VERSION);
     app.add_argument("-V", "--verbose").help("show verbose log").default_value(false).implicit_value(true);
 
