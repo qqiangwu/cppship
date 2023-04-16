@@ -66,16 +66,16 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-unused-parame
 set(CMAKE_SOURCE_DIR "${CMAKE_SOURCE_DIR}/../")
 
 # add conan generator folder
-list(PREPEND CMAKE_PREFIX_PATH "${CONAN_GENERATORS_FOLDER}"))"
-         << "\n";
+list(PREPEND CMAKE_PREFIX_PATH "${CONAN_GENERATORS_FOLDER}")
+)";
 
     mOut << "\n"
          << fmt::format(R"(# cpp std
 set(CMAKE_CXX_STANDARD {})
 set(CMAKE_CXX_STANDARD_REQUIRED On)
-set(CMAKE_CXX_EXTENSIONS Off))",
-                mManifest.cxx_std())
-         << "\n";
+set(CMAKE_CXX_EXTENSIONS Off)
+)",
+                mManifest.cxx_std());
 }
 
 void CmakeGenerator::emit_package_finders_()
@@ -154,32 +154,32 @@ void CmakeGenerator::add_test_sources_()
     }
 
     mOut << "\n # Tests\n";
-    mOut << R"(file(GLOB srcs ${CMAKE_SOURCE_DIR}/tests/*.cpp)
+    mOut << R"(file(GLOB_RECURSE srcs RELATIVE "${CMAKE_SOURCE_DIR}/tests" "${CMAKE_SOURCE_DIR}/tests/**.cpp")
 
 find_package(GTest REQUIRED)
 
 foreach(file ${srcs})
-    get_filename_component(file_stem ${file} NAME_WE)
-    set(test_target ${file_stem}_test)
+    # a/b/c.cpp => a_b_c_test
+    string(REPLACE "/" "_" test_target ${file})
+    string(REPLACE ".cpp" "_test" test_target ${test_target})
 
-    add_executable(${test_target} ${file})
+    add_executable(${test_target} "${CMAKE_SOURCE_DIR}/tests/${file}")
 
     target_link_libraries(${test_target} PRIVATE ${PROJECT_NAME})
     target_link_libraries(${test_target} PRIVATE GTest::gtest_main)
 
     add_test(${test_target} ${test_target})
-endforeach())"
-         << "\n";
+endforeach()
+)";
 }
 
 void CmakeGenerator::emit_footer_()
 {
     mOut << "\n# Footer\n"
-         << fmt::format(R"(set(CPACK_PROJECT_NAME {})
-set(CPACK_PROJECT_VERSION {})
-include(CPack))",
-                mName, mManifest.version())
-         << std::endl;
+         << R"(set(CPACK_PROJECT_NAME ${PROJECT_NAME})
+set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
+include(CPack)
+)";
 }
 
 std::set<std::string> CmakeGenerator::list_sources_(std::string_view dir)

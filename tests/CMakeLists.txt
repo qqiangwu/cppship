@@ -1,10 +1,11 @@
-file(GLOB srcs ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+file(GLOB_RECURSE srcs RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.cpp)
 
 find_package(GTest REQUIRED)
 
 foreach(file ${srcs})
-    get_filename_component(file_stem ${file} NAME_WE)
-    set(test_target ${file_stem}_test)
+    # a/b/c.cpp => a_b_c_test
+    string(REPLACE "/" "_" test_target ${file})
+    string(REPLACE ".cpp" "_test" test_target ${test_target})
 
     add_executable(${test_target} ${file})
 
