@@ -68,6 +68,7 @@ cppship build -r
 ## run
 ```bash
 cppship run
+cppship run -- a b c extra_args
 ```
 
 ## test
@@ -90,9 +91,12 @@ We will use `clang-format` to format our code
 
 ```bash
 # by default, only format files changed since last commit
-cppship fmt # dry-run and warn
-cppship fmt --cached # only fmt git cached files
-cppship fmt -f # fix it
+# dry-run and warn
+cppship fmt
+# only fmt git cached files
+cppship fmt --cached
+# fix it
+cppship fmt -f
 
 # format all files
 cppship fmt -a
@@ -105,6 +109,8 @@ We will use `clang-tidy` to lint your code
 ```bash
 # by default, only lint files changed since last commit
 cppship lint
-cppship lint --cached # lint git cached files
-cppship lint -a # lint all
+# lint git cached files
+cppship lint --cached
+# lint all
+cppship lint -a
 ```
