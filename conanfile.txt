@@ -15,3 +15,7 @@ benchmark/1.7.1
 
 [generators]
 CMakeDeps
+
+[options]
+boost/*:without_stacktrace=True
+boost/*:without_locale=True
