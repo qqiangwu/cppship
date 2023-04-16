@@ -3,6 +3,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 #include <fmt/format.h>
@@ -15,6 +16,7 @@ struct DeclaredDependency {
     std::string package;
     std::string version;
     std::vector<std::string> components;
+    std::unordered_map<std::string, std::string> options;
 };
 
 enum class CxxStd { cxx11 = 11, cxx14 = 14, cxx17 = 17, cxx20 = 20, cxx23 = 23 };

@@ -122,3 +122,24 @@ toml11 = "3.7.1"
     EXPECT_EQ(dep2.version, "3.7.1");
     EXPECT_TRUE(dep2.components.empty());
 }
+
+TEST(manifest, DependenciesOptions)
+{
+    const auto meta = mock_manifest(R"([package]
+name = "abc"
+version = "0.1.0"
+
+[dependencies]
+boost = { version = "1.81.0", components = ["headers"], options = { without_stacktrace = true, i18backend = "icu" } }
+)");
+
+    EXPECT_EQ(meta.dependencies().size(), 1);
+
+    const auto& dep = meta.dependencies().front();
+
+    EXPECT_EQ(dep.package, "boost");
+    EXPECT_EQ(dep.version, "1.81.0");
+    EXPECT_EQ(dep.components, std::vector<std::string> { "headers" });
+    EXPECT_EQ(dep.options.at("without_stacktrace"), "True");
+    EXPECT_EQ(dep.options.at("i18backend"), "\"icu\"");
+}
