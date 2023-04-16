@@ -199,6 +199,7 @@ try {
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): known to be safe
     argparse::ArgumentParser app("cppship", CPPSHIP_VERSION);
+    app.add_argument("-V", "--verbose").help("show verbose log").default_value(false).implicit_value(true);
 
     auto sub_commands = build_commands();
     for (auto& cmd : sub_commands) {
@@ -211,6 +212,10 @@ try {
         std::cerr << err.what() << "\n\n";
         std::cerr << app;
         return EXIT_FAILURE;
+    }
+
+    if (app.get<bool>("-V")) {
+        spdlog::set_level(spdlog::level::debug);
     }
 
     try {

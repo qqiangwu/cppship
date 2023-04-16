@@ -16,6 +16,7 @@ namespace cppship::cmd {
 struct BuildOptions {
     int max_concurrency = gsl::narrow_cast<int>(std::thread::hardware_concurrency());
     Profile profile = Profile::debug;
+    std::optional<std::string> target;
 };
 
 struct BuildContext {
