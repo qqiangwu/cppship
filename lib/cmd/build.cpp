@@ -145,6 +145,16 @@ void cmd::conan_setup(const BuildContext& ctx)
     oss << "[generators]\n"
         << "CMakeDeps\n";
 
+    if (const auto& deps = ctx.manifest.dependencies(); !deps.empty()) {
+        oss << "\n[options]\n";
+
+        for (const auto& dep : deps) {
+            for (const auto& [key, val] : dep.options) {
+                oss << fmt::format("{}/*:{}={}\n", dep.package, key, val);
+            }
+        }
+    }
+
     write(ctx.conan_file, oss.str());
 }
 

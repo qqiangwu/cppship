@@ -31,6 +31,23 @@ CxxStd get_cxx_std(const toml::value& value)
     return *std;
 }
 
+std::string get_option_value(const toml::value& value)
+{
+    if (value.is_boolean()) {
+        return value.as_boolean() ? "True" : "False";
+    }
+
+    if (value.is_integer()) {
+        return std::to_string(value.as_integer());
+    }
+
+    if (value.is_string()) {
+        return fmt::format("\"{}\"", value.as_string().str);
+    }
+
+    throw Error { "dependency options' value can only be bool/int/string" };
+}
+
 }
 
 Manifest::Manifest(const fs::path& file)
@@ -58,7 +75,11 @@ Manifest::Manifest(const fs::path& file)
                 pkg.version = dep.as_string();
             } else if (dep.is_table()) {
                 pkg.version = toml::find<std::string>(dep, "version");
-                pkg.components = toml::find<std::vector<std::string>>(dep, "components");
+                pkg.components = toml::find_or<std::vector<std::string>>(dep, "components", {});
+                for (const auto& [key, val] :
+                    toml::find_or<std::unordered_map<std::string, toml::value>>(dep, "options", {})) {
+                    pkg.options.emplace(key, get_option_value(val));
+                }
             } else {
                 throw Error { fmt::format("invalid dependency {} in manifest", name) };
             }

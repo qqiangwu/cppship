@@ -5,7 +5,7 @@ authors = []
 std = 20
 
 [dependencies]
-boost = { version = "1.81.0", components = ["headers"] }
+boost = { version = "1.81.0", components = ["headers"], options = { without_stacktrace = true, without_locale = true } }
 toml11 = "3.7.1"
 fmt = "9.1.0"
 range-v3 = "0.12.0"
