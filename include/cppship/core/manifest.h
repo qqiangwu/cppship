@@ -42,6 +42,8 @@ public:
 
     CxxStd cxx_std() const { return mCxxStd; }
 
+    const std::vector<std::string>& definitions() const { return mDefinitions; }
+
     const std::vector<DeclaredDependency>& dependencies() const { return mDependencies; }
 
 private:
@@ -49,6 +51,7 @@ private:
     std::string mVersion;
     CxxStd mCxxStd = CxxStd::cxx17;
 
+    std::vector<std::string> mDefinitions;
     std::vector<DeclaredDependency> mDependencies;
 };
 

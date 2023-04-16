@@ -106,6 +106,10 @@ void CmakeGenerator::add_lib_sources_()
         mOut << fmt::format("target_link_libraries({} PUBLIC {})\n", mName, boost::join(dep.cmake_targets, " "));
     }
 
+    if (const auto& defs = mManifest.definitions(); !defs.empty()) {
+        mOut << fmt::format("\ntarget_compile_definitions({} PUBLIC {})\n", mName, boost::join(defs, " "));
+    }
+
     mHasLib = true;
 }
 
@@ -118,9 +122,12 @@ void CmakeGenerator::add_app_sources_()
 
     mOut << "\n# APP\n" << fmt::format("add_executable({}_bin {})\n", mName, boost::join(sources, "\n"));
 
+    mOut << fmt::format("\ntarget_include_directories({}_bin PRIVATE ${{CMAKE_SOURCE_DIR}}/{})\n", mName, kSrcPath);
     mOut << fmt::format(R"(target_compile_definitions({}_bin PRIVATE {}_VERSION="${{PROJECT_VERSION}}"))", mName,
         boost::to_upper_copy(std::string(mName)));
-    mOut << fmt::format("\ntarget_include_directories({}_bin PRIVATE ${{CMAKE_SOURCE_DIR}}/{})\n", mName, kSrcPath);
+    if (const auto& defs = mManifest.definitions(); !defs.empty()) {
+        mOut << fmt::format("\ntarget_compile_definitions({}_bin PRIVATE {})\n", mName, boost::join(defs, " "));
+    }
 
     mOut << "\n";
     if (mHasLib) {

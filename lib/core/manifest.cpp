@@ -46,9 +46,10 @@ Manifest::Manifest(const fs::path& file)
         mName = get<std::string>(package, "name");
         mVersion = get<std::string>(package, "version");
         mCxxStd = get_cxx_std(package);
+        mDefinitions = toml::find_or<std::vector<std::string>>(package, "definitions", {});
 
-        const auto deps = get(value, "dependencies");
-        for (const auto& [name, dep] : deps.as_table()) {
+        const auto deps = toml::find_or<std::unordered_map<std::string, toml::value>>(value, "dependencies", {});
+        for (const auto& [name, dep] : deps) {
             auto& pkg = mDependencies.emplace_back();
 
             pkg.package = name;
@@ -65,7 +66,7 @@ Manifest::Manifest(const fs::path& file)
     } catch (const std::out_of_range& e) {
         throw Error { e.what() };
     } catch (const toml::exception& e) {
-        throw Error { fmt::format("invalid manifest format: {}", e.what()) };
+        throw Error { fmt::format("invalid manifest format at {}", e.what()) };
     }
 }
 
