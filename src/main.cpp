@@ -5,6 +5,7 @@
 #include <thread>
 
 #include <argparse/argparse.hpp>
+#include <boost/algorithm/string/join.hpp>
 #include <gsl/narrow>
 #include <range/v3/algorithm/find_if.hpp>
 #include <spdlog/spdlog.h>
@@ -127,15 +128,24 @@ std::list<SubCommand> build_commands()
         "install", [](const ArgumentParser& cmd) { return cmd::run_install({ .profile = get_profile(cmd) }); });
     install.parser.add_description("install binary if exists");
     install.parser.add_argument("-r").help("build in release mode").default_value(false).implicit_value(true);
-    install.parser.add_argument("--profile").help("build with specific profile").default_value(kProfileDebug);
+    install.parser.add_argument("--profile")
+        .help("build with specific profile")
+        .metavar("profile")
+        .default_value(kProfileDebug);
 
     // run
-    auto& run = commands.emplace_back(
-        "run", [](const ArgumentParser& cmd) { return cmd::run_run({ .profile = get_profile(cmd) }); });
+    auto& run = commands.emplace_back("run", [](const ArgumentParser& cmd) {
+        const auto remaining = cmd.present<std::vector<std::string>>("--").value_or(std::vector<std::string> {});
+        return cmd::run_run({ .profile = get_profile(cmd), .args = boost::join(remaining, " ") });
+    });
 
     run.parser.add_description("run binary");
     run.parser.add_argument("-r").help("build in release mode").default_value(false).implicit_value(true);
-    run.parser.add_argument("--profile").help("build with specific profile").default_value(kProfileDebug);
+    run.parser.add_argument("--profile")
+        .help("build with specific profile")
+        .metavar("profile")
+        .default_value(kProfileDebug);
+    run.parser.add_argument("--").help("extra args").metavar("args").remaining();
 
     // test
     auto& test = commands.emplace_back(
@@ -143,7 +153,10 @@ std::list<SubCommand> build_commands()
 
     test.parser.add_description("run tests");
     test.parser.add_argument("-r").help("build in release mode").default_value(false).implicit_value(true);
-    test.parser.add_argument("--profile").help("build with specific profile").default_value(kProfileDebug);
+    test.parser.add_argument("--profile")
+        .help("build with specific profile")
+        .metavar("profile")
+        .default_value(kProfileDebug);
 
     // init
     auto& init = commands.emplace_back("init", [](const ArgumentParser& cmd) {
