@@ -35,6 +35,9 @@ CheckOptions:
   - key: readability-identifier-naming.ConstexprVariablePrefix
     value: k
 
+  - key: readability-function-cognitive-complexity.IgnoreMacros
+    value: true
+
   - key: misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic
     value: true
 
