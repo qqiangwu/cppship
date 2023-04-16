@@ -51,7 +51,7 @@ void cmd::conan_detect_profile(const BuildContext& ctx)
     }
 
     if (!ctx.is_expired(ctx.conan_profile_path)) {
-        status("dependency", "profile is up to date");
+        debug("profile is up to date");
         return;
     }
 
@@ -125,7 +125,7 @@ void cmd::conan_detect_profile(const BuildContext& ctx)
 void cmd::conan_setup(const BuildContext& ctx)
 {
     if (!ctx.is_expired(ctx.conan_file)) {
-        status("dependency", "conanfile is up to date");
+        debug("conanfile is up to date");
         return;
     }
 
@@ -151,7 +151,7 @@ void cmd::conan_setup(const BuildContext& ctx)
 void cmd::conan_install(const BuildContext& ctx)
 {
     if (!ctx.is_expired(ctx.dependency_file)) {
-        status("dependency", "dependency is up to date");
+        debug("dependency is up to date");
         return;
     }
 
@@ -179,7 +179,7 @@ void cmd::cmake_setup(const BuildContext& ctx)
         const auto saved = saved_inventory.at("files").as_array()
             | rng::transform([](const auto& val) { return val.as_string().str; });
         if (ranges::equal(files, saved) && !ctx.is_expired(inventory_file)) {
-            status("config", "files not changed, skip");
+            debug("files not changed, skip");
             return;
         }
     }
@@ -205,7 +205,10 @@ void cmd::cmake_setup(const BuildContext& ctx)
 
 int cmd::cmake_build(const BuildContext& ctx, const BuildOptions& options)
 {
-    const auto cmd = fmt::format("cmake --build {} -j {}", ctx.profile_dir.string(), options.max_concurrency);
+    auto cmd = fmt::format("cmake --build {} -j {}", ctx.profile_dir.string(), options.max_concurrency);
+    if (options.target) {
+        cmd += fmt::format(" --target {}", *options.target);
+    }
 
     status("build", "{}", cmd);
     return boost::process::system(cmd, boost::process::shell);

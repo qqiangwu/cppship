@@ -10,7 +10,7 @@ namespace cppship {
 
 template <class... Args> inline void debug(fmt::format_string<Args...> fmt, Args&&... args)
 {
-    spdlog::debug("{} {}", fmt::styled("Debug", fmt::fg(fmt::color::gray) | fmt::emphasis::bold),
+    spdlog::debug("{:>15} {}", fmt::styled("debug", fmt::fg(fmt::color::gray) | fmt::emphasis::bold),
         fmt::format(fmt, std::forward<Args>(args)...));
 }
 

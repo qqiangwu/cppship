@@ -16,13 +16,18 @@ using namespace cppship;
 
 int cmd::run_run(const RunOptions& options)
 {
-    const int result = run_build({ .profile = options.profile });
+    BuildContext ctx(options.profile);
+    Manifest manifest(ctx.metafile);
+    if (!fs::exists(ctx.root / kSrcPath)) {
+        warn("no binary to run");
+        return EXIT_SUCCESS;
+    }
+
+    const int result = run_build({ .profile = options.profile, .target = fmt::format("{}_bin", manifest.name()) });
     if (result != 0) {
         return EXIT_FAILURE;
     }
 
-    BuildContext ctx(options.profile);
-    Manifest manifest(ctx.metafile);
     const auto bin_file = ctx.profile_dir / manifest.name();
     if (!fs::exists(bin_file)) {
         warn("no binary to run");
