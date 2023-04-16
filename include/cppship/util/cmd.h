@@ -40,7 +40,7 @@ inline std::string check_output(std::string_view cmd)
         throw RunCmdFailed(res, cmd);
     }
 
-    return read_all(pipe);
+    return read_as_string(pipe);
 }
 
 }

@@ -22,7 +22,7 @@ int cmd::run_test(const TestOptions& options)
     BuildContext ctx(options.profile);
     ScopedCurrentDir guard(ctx.profile_dir);
 
-    const auto cmd = fmt::format("ctest");
+    const auto cmd = fmt::format("ctest --output-on-failure");
     status("test", "{}", cmd);
     return boost::process::system(cmd);
 }
