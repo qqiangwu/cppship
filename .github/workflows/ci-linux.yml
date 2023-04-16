@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         build_type: [ Debug, Release ]
-        os: [ubuntu-22.04]
+        os: [ubuntu-20.04, ubuntu-22.04]
 
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
     # You can convert this to a matrix build if you need cross-platform coverage.
@@ -65,6 +65,7 @@ jobs:
         mkdir .bin && cd .bin
         cppship init . --name app
         cppship build
+        cppship run
         cppship test
         cppship install
         type app
