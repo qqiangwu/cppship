@@ -4,14 +4,16 @@
 
 using namespace cppship;
 
-TEST(fs, write_file)
+TEST(fs, ScopedCurrentDir)
 {
+    const auto cwd = fs::current_path();
     const auto tmpdir = fs::temp_directory_path();
-    const auto tmpfile = tmpdir / "test";
-    constexpr auto kContent = "abc\ndef\n";
+    EXPECT_NE(cwd, tmpdir);
 
-    write_file(tmpfile, kContent);
+    {
+        ScopedCurrentDir guard(tmpdir);
+        EXPECT_TRUE(fs::equivalent(fs::current_path(), tmpdir));
+    }
 
-    const auto content = read_file(tmpfile);
-    ASSERT_EQ(kContent, content);
+    EXPECT_EQ(fs::current_path(), cwd);
 }

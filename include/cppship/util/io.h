@@ -1,22 +1,15 @@
 #pragma once
 
 #include <sstream>
-#include <string>
 
-#include "cppship/exception.h"
+#include "cppship/util/fs.h"
 
 namespace cppship {
 
-inline std::string read_all(std::istream& iss)
-{
-    std::ostringstream oss;
-    oss << iss.rdbuf();
+void write(const fs::path& file, std::string_view content);
 
-    if (!oss) {
-        throw Error { "drain stream failed" };
-    }
+std::string read_as_string(const fs::path& file);
 
-    return oss.str();
-}
+std::string read_as_string(std::istream& iss);
 
 }

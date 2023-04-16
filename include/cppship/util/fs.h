@@ -27,10 +27,6 @@ private:
     fs::path mPrevCwd;
 };
 
-void write_file(const fs::path& file, std::string_view content);
-
-std::string read_file(const fs::path& file);
-
 inline void create_if_not_exist(const fs::path& path)
 {
     if (fs::exists(path)) {

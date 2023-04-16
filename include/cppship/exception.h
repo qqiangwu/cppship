@@ -45,4 +45,9 @@ private:
     std::string mCmd;
 };
 
+class IOError : public Error {
+public:
+    using Error::Error;
+};
+
 }

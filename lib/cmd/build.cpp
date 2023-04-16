@@ -145,7 +145,7 @@ void cmd::conan_setup(const BuildContext& ctx)
     oss << "[generators]\n"
         << "CMakeDeps\n";
 
-    write_file(ctx.conan_file, oss.str());
+    write(ctx.conan_file, oss.str());
 }
 
 void cmd::conan_install(const BuildContext& ctx)
@@ -164,7 +164,7 @@ void cmd::conan_install(const BuildContext& ctx)
         throw Error { "conan install failed" };
     }
 
-    write_file(ctx.dependency_file, toml::format(toml::value(collect_deps(ctx.profile_dir / "conan", ctx.profile))));
+    write(ctx.dependency_file, toml::format(toml::value(collect_deps(ctx.profile_dir / "conan", ctx.profile))));
 }
 
 void cmd::cmake_setup(const BuildContext& ctx)
@@ -186,7 +186,7 @@ void cmd::cmake_setup(const BuildContext& ctx)
 
     status("config", "generate cmake files");
     CmakeGenerator gen(ctx.manifest, toml::get<ResolvedDependencies>(toml::parse(ctx.dependency_file)));
-    write_file(ctx.build_dir / "CMakeLists.txt", std::move(gen).build());
+    write(ctx.build_dir / "CMakeLists.txt", std::move(gen).build());
 
     const std::string cmd = fmt::format(
         "cmake -B {} -S build -DCMAKE_BUILD_TYPE={} -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCONAN_GENERATORS_FOLDER={}",
@@ -200,7 +200,7 @@ void cmd::cmake_setup(const BuildContext& ctx)
 
     fs::rename(ctx.profile_dir / "compile_commands.json", ctx.build_dir / "compile_commands.json");
 
-    write_file(inventory_file, toml::format(toml::value({ { "files", files } })));
+    write(inventory_file, toml::format(toml::value({ { "files", files } })));
 }
 
 int cmd::cmake_build(const BuildContext& ctx, const BuildOptions& options)

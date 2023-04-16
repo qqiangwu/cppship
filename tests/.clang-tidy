@@ -1,5 +1,5 @@
 ---
-Checks: -cppcoreguidelines-pro-type-vararg,-cppcoreguidelines-special-member-functions,-cppcoreguidelines-avoid-non-const-global-variables,-cppcoreguidelines-owning-memory
+Checks: -cppcoreguidelines-pro-type-vararg,-cppcoreguidelines-special-member-functions,-cppcoreguidelines-avoid-non-const-global-variables,-cppcoreguidelines-owning-memory,-cppcoreguidelines-avoid-magic-numbers,-cppcoreguidelines-avoid-goto
 InheritParentConfig: true
 
 # ignore checkers which gtest cannot pass

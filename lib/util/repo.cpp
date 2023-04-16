@@ -99,5 +99,5 @@ std::set<fs::path> cppship::list_changed_files(const ListOptions& options)
         | views::transform(
             [root = root.string()](std::string_view line) { return fs::path(fmt::format("{}/{}", root, line)); })
         | views::filter([](const fs::path& path) { return ranges::contains(kSourceExtension, path.extension()); })
-        | to<std::set<fs::path>>();
+        | views::filter([](const fs::path& path) { return fs::exists(path); }) | to<std::set<fs::path>>();
 }
