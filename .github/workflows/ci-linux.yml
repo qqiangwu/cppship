@@ -54,7 +54,7 @@ jobs:
         cppship test --profile ${{ matrix.build_type }}
 
     - name: Lint and format
-      if: matrix.build_type == 'Release'
+      if: matrix.build_type == 'Release' && matrix.os == 'ubuntu-22.04'
       run: |
         cppship fmt -a
         cppship lint -a
