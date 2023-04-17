@@ -13,14 +13,30 @@ concurrency:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         build_type: [ Release, Debug ]
-        os: [macos-11, macos-12]
+        os: [macos-12]
+        compiler:
+          - cc: cc
+            cxx: c++
+          - cc: gcc-11
+            cxx: g++-11
+        include:
+          - build_type: Release
+            os: macos-11
+            compiler:
+              cc: cc
+              cxx: c++
 
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
     # You can convert this to a matrix build if you need cross-platform coverage.
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
     runs-on: ${{ matrix.os }}
+
+    env:
+      CC: ${{ matrix.compiler.cc }}
+      CXX: ${{ matrix.compiler.cxx }}
 
     steps:
     - uses: actions/checkout@v3
@@ -42,7 +58,8 @@ jobs:
       run: cmake --install ${{github.workspace}}/build --config ${{ matrix.build_type }}
 
     - name: Test
-      run: cd build && ctest && cd ..
+      run: ctest --output-on-failure --verbose
+      working-directory: build
 
     - name: Run cppship
       run: |
