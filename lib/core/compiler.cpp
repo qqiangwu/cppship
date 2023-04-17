@@ -57,7 +57,7 @@ CompilerId get_compiler_id(const std::string_view out)
         return CompilerId::apple_clang;
     }
 
-    if (boost::contains(out, "clang++")) {
+    if (boost::contains(out, "clang")) {
         return CompilerId::clang;
     }
 
@@ -68,51 +68,11 @@ CompilerId get_compiler_id(const std::string_view out)
     return CompilerId::unknown;
 }
 
-std::string get_compiler_version_gcc(const std::string_view out)
+int get_compiler_version(const std::string_view cxx)
 {
-    // g++ (GCC) 11.2.0
-    std::vector<std::string> fields;
-    boost::split(fields, out, boost::is_any_of(" "));
-    if (fields.empty()) {
-        throw Error { fmt::format("detect compiler version failed from {}", out) };
-    }
-    return fields.back();
-}
+    const auto out = check_output(fmt::format("{} -dumpversion", cxx));
 
-std::string get_compiler_version_clang(const std::string_view out)
-{
-    // Apple clang version 13.0.0 (...)
-    // clang version 12.0.0 (...)
-    const std::string_view marker = "version";
-    auto pos = out.find(marker);
-    if (pos == std::string_view::npos) {
-        throw Error { fmt::format("detect compiler version failed from {}", out) };
-    }
-
-    pos += marker.size();
-
-    return { out.begin() + pos, out.end() };
-}
-
-int get_compiler_version(const std::string_view out, CompilerId compiler_id)
-{
-    const auto version_str = [=] {
-        switch (compiler_id) {
-        case CompilerId::apple_clang:
-        case CompilerId::clang:
-            return get_compiler_version_clang(out);
-
-        case CompilerId::gcc:
-            return get_compiler_version_gcc(out);
-
-        case CompilerId::unknown:
-            return ""s;
-        }
-
-        std::terminate();
-    }();
-
-    std::istringstream iss(version_str);
+    std::istringstream iss(out);
     int version = 0;
     iss >> version;
     if (version == 0) {
@@ -143,10 +103,10 @@ std::string get_libcxx(CompilerId compiler_id)
 
 CompilerInfo::CompilerInfo()
     : mCommand(detect_compiler_command())
+    , mVersion(get_compiler_version(mCommand))
 {
     const auto out = check_output(fmt::format("{} --version | head -n1", mCommand));
 
     mId = get_compiler_id(out);
-    mVersion = get_compiler_version(out, mId);
     mLibCxx = get_libcxx(mId);
 }

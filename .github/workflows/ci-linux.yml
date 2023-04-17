@@ -13,14 +13,32 @@ concurrency:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         build_type: [ Debug, Release ]
-        os: [ubuntu-20.04, ubuntu-22.04]
+        compiler:
+          - cc: clang-12
+            cxx: clang++-12
+          - cc: clang-13
+            cxx: clang++-13
+          - cc: clang-14
+            cxx: clang++-14
+          - cc: gcc-9
+            cxx: g++-9
+          - cc: gcc-10
+            cxx: g++-10
+          - cc: gcc-11
+            cxx: g++-11
+          # gcc-12 has bug in -O3: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105329
 
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
     # You can convert this to a matrix build if you need cross-platform coverage.
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-22.04
+
+    env:
+      CC: ${{ matrix.compiler.cc }}
+      CXX: ${{ matrix.compiler.cxx }}
 
     steps:
     - uses: actions/checkout@v3
@@ -42,7 +60,8 @@ jobs:
       run: cmake --install ${{github.workspace}}/build --config ${{ matrix.build_type }}
 
     - name: Test
-      run: cd build && ctest && cd ..
+      run: ctest --output-on-failure --verbose
+      working-directory: build
 
     - name: Run cppship
       run: |
@@ -54,7 +73,7 @@ jobs:
         cppship test --profile ${{ matrix.build_type }}
 
     - name: Lint and format
-      if: matrix.build_type == 'Release' && matrix.os == 'ubuntu-22.04'
+      if: matrix.build_type == 'Release' && matrix.compiler.cxx == 'clang++-14'
       run: |
         cppship fmt -a
         cppship lint -a

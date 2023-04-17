@@ -68,11 +68,17 @@ function(detect_build_type BUILD_TYPE)
     endif()
 endfunction()
 
+# https://github.com/conan-io/conan/blob/47af537a5cc4722cf9186fb0f9ba4786aeba0086/conans/client/conf/detect.py#L181
 function(detect_libcxx LIBCXX)
     if(CMAKE_CXX_COMPILER_ID MATCHES AppleClang)
         set(_LIBCXX "libc++")
     elseif(CMAKE_CXX_COMPILER_ID MATCHES Clang)
-        set(_LIBCXX "libc++")
+        if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+            set(_LIBCXX "libc++")
+        else()
+            # msvc is already ruled out in detect_compiler
+            set(_LIBCXX "libstdc++11")
+        endif()
     elseif(CMAKE_CXX_COMPILER_ID MATCHES GNU)
         set(_LIBCXX "libstdc++11")
     else()
