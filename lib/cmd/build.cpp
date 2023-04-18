@@ -207,7 +207,9 @@ void cmd::cmake_setup(const BuildContext& ctx)
         throw Error { "config cmake failed" };
     }
 
-    fs::rename(ctx.profile_dir / "compile_commands.json", ctx.build_dir / "compile_commands.json");
+    if (const auto compile_db = ctx.profile_dir / "compile_commands.json"; fs::exists(compile_db)) {
+        fs::rename(compile_db, ctx.build_dir / "compile_commands.json");
+    }
 
     write(inventory_file, toml::format(toml::value({ { "files", files } })));
 }
