@@ -24,13 +24,13 @@ template <class... Args> inline void status(std::string_view event, fmt::format_
 
 template <class... Args> inline void warn(fmt::format_string<Args...> fmt, Args&&... args)
 {
-    spdlog::info("{:>15} {}", fmt::styled("warn", fmt::fg(fmt::color::yellow) | fmt::emphasis::bold),
+    spdlog::warn("{:>15} {}", fmt::styled("warn", fmt::fg(fmt::color::yellow) | fmt::emphasis::bold),
         fmt::format(fmt, std::forward<Args>(args)...));
 }
 
 template <class... Args> inline void error(fmt::format_string<Args...> fmt, Args&&... args)
 {
-    spdlog::info("{:>15} {}", fmt::styled("error", fmt::fg(fmt::color::red) | fmt::emphasis::bold),
+    spdlog::error("{:>15} {}", fmt::styled("error", fmt::fg(fmt::color::red) | fmt::emphasis::bold),
         fmt::format(fmt, std::forward<Args>(args)...));
 }
 

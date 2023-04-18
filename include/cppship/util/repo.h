@@ -26,6 +26,7 @@ struct ListOptions {
 };
 
 std::set<fs::path> list_sources(std::string_view dir);
+std::set<fs::path> list_sources(const fs::path& source_dir);
 std::set<fs::path> list_all_files();
 
 std::set<fs::path> list_changed_files(const ListOptions& options = {});

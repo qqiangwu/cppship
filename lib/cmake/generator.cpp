@@ -1,6 +1,8 @@
 #include "cppship/cmake/generator.h"
+#include "cppship/cmake/lib.h"
 #include "cppship/core/manifest.h"
 #include "cppship/exception.h"
+#include "cppship/util/log.h"
 #include "cppship/util/repo.h"
 
 #include <boost/algorithm/string.hpp>
@@ -89,26 +91,23 @@ void CmakeGenerator::emit_package_finders_()
 
 void CmakeGenerator::add_lib_sources_()
 {
-    const auto sources = list_sources_(kLibPath);
-    if (sources.empty()) {
+    const auto root = get_project_root();
+    const auto include_dir = root / kIncludePath;
+    const auto source_dir = root / kLibPath;
+    if (!fs::exists(include_dir)) {
+        if (fs::exists(source_dir)) {
+            warn("lib without a include dir(eg. {}) is not a valid profile", include_dir.string());
+        }
+
         return;
     }
 
-    mOut << "\n # LIB\n";
-    mOut << fmt::format("add_library({} {})\n", mName, boost::join(sources, "\n"));
-
-    mOut << "\n"
-         << fmt::format("target_include_directories({} PRIVATE ${{CMAKE_SOURCE_DIR}}/{})\n", mName, kLibPath)
-         << fmt::format("target_include_directories({} PUBLIC ${{CMAKE_SOURCE_DIR}}/{})\n", mName, kIncludePath)
-         << std::endl;
-
-    for (const auto& dep : mDeps) {
-        mOut << fmt::format("target_link_libraries({} PUBLIC {})\n", mName, boost::join(dep.cmake_targets, " "));
-    }
-
-    if (const auto& defs = mManifest.definitions(); !defs.empty()) {
-        mOut << fmt::format("\ntarget_compile_definitions({} PUBLIC {})\n", mName, boost::join(defs, " "));
-    }
+    cmake::CmakeLib lib({ .name = std::string { mName },
+        .include_dir = include_dir,
+        .source_dir = fs::exists(source_dir) ? std::optional { source_dir } : std::nullopt,
+        .deps = mDeps,
+        .definitions = mManifest.definitions() });
+    lib.build(mOut);
 
     mHasLib = true;
 }
