@@ -123,6 +123,9 @@ cppship build
 
 # release build
 cppship build -r
+
+# dry-run, config cmake and generate compile_commands.json under build
+cppship build -d
 ```
 
 ## run
