@@ -107,7 +107,8 @@ std::list<SubCommand> build_commands()
 
     // build
     auto& build = commands.emplace_back("build", [](const ArgumentParser& cmd) {
-        return cmd::run_build({ .max_concurrency = get_concurrency(cmd), .profile = get_profile(cmd) });
+        return cmd::run_build(
+            { .max_concurrency = get_concurrency(cmd), .profile = get_profile(cmd), .dry_run = cmd.get<bool>("-d") });
     });
 
     build.parser.add_description("build the project");
@@ -117,6 +118,10 @@ std::list<SubCommand> build_commands()
         .default_value(gsl::narrow_cast<int>(std::thread::hardware_concurrency()))
         .scan<'d', int>();
     build.parser.add_argument("-r").help("build in release mode").default_value(false).implicit_value(true);
+    build.parser.add_argument("-d")
+        .help("dry-run, generate compile_commands.json")
+        .default_value(false)
+        .implicit_value(true);
     build.parser.add_argument("--profile").help("build with specific profile").default_value(kProfileDebug);
 
     // clean

@@ -41,6 +41,10 @@ int cmd::run_build(const BuildOptions& options)
     conan_install(ctx);
     cmake_setup(ctx);
 
+    if (options.dry_run) {
+        return 0;
+    }
+
     return cmake_build(ctx, options);
 }
 
