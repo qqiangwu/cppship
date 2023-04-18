@@ -9,7 +9,6 @@ A cargo-like modern cpp build tools, aimed to combine all existing best practice
 + tests: google test
 + benches: google bench
 
-
 # Demo
 ![demo](https://user-images.githubusercontent.com/2892107/232242145-bcc4bb3f-21c0-41a6-919a-9b5f5b196246.gif)
 
@@ -51,6 +50,56 @@ cppship test
 # install
 cppship install
 ```
+
+# Tutorial
+Cppship will generate cmake projects based on your directory structure and cppship.toml.
+
+## cppship.toml
+```toml
+[package]
+# (required) your lib or binary name
+name = "cppship"
+# (required)
+version = "0.0.1"
+authors = []
+# (optional) specifiy you cppstd
+std = 20
+
+[dependencies]
+# conan dependencies
+boost = { version = "1.81.0", components = ["headers"], options = { header_only = true } }
+toml11 = "3.7.1"
+fmt = "9.1.0"
+range-v3 = "0.12.0"
+bshoshany-thread-pool = "3.3.0"
+ms-gsl = "4.0.0"
+argparse = "2.9"
+spdlog = "1.11.0"
+```
+
+## header-only lib
+make sure your project have the following structure:
+
++ include: lib include dir
++ tests: test cpp files go here, optional, `lib` will be its dependency
+
+## lib
+make sure your project have the following structure:
+
++ include: lib include dir
++ lib: lib cpp files go here
++ tests: test cpp files go here, optional, `lib` will be its dependency
+
+## binary
+make sure your project have the following structure:
+
++ src: binary cpp files go here, currently only one binary is supported
+
+## lib + binary
++ include: lib include dir
++ lib: lib cpp files go here
++ src: bin cpp files go here, `lib` will be its dependency
++ tests: test cpp files go here, optional, `lib` will be its dependency
 
 # Usage
 ## Init
