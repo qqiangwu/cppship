@@ -9,10 +9,21 @@ A cargo-like modern cpp build tools, aimed to combine all existing best practice
 + tests: google test
 + benches: google bench
 
+
 # Demo
 ![demo](https://user-images.githubusercontent.com/2892107/232242145-bcc4bb3f-21c0-41a6-919a-9b5f5b196246.gif)
 
-# Build
+# Install
+## Predefined packages
+### MacOS
+```bash
+$ brew install qqiangwu/tap/cppship
+```
+
+### Linux
+Try [homebrew](https://brew.sh/), or build it yourself, see below.
+
+
 ## CMake
 We can use cmake to build `cppship`
 
