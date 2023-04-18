@@ -12,6 +12,7 @@ concurrency:
 
 jobs:
   build:
+    if: "!contains(github.event.pull_request.title, 'skip-ci')"
     strategy:
       fail-fast: false
       matrix:
