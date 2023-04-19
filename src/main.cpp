@@ -141,7 +141,8 @@ std::list<SubCommand> build_commands()
     // run
     auto& run = commands.emplace_back("run", [](const ArgumentParser& cmd) {
         const auto remaining = cmd.present<std::vector<std::string>>("--").value_or(std::vector<std::string> {});
-        return cmd::run_run({ .profile = get_profile(cmd), .args = boost::join(remaining, " ") });
+        return cmd::run_run(
+            { .profile = get_profile(cmd), .args = boost::join(remaining, " "), .bin = cmd.present("--bin") });
     });
 
     run.parser.add_description("run binary");
@@ -150,6 +151,7 @@ std::list<SubCommand> build_commands()
         .help("build with specific profile")
         .metavar("profile")
         .default_value(kProfileDebug);
+    run.parser.add_argument("--bin").help("name of binary to run").metavar("name");
     run.parser.add_argument("--").help("extra args").metavar("args").remaining();
 
     // test

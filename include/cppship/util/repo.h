@@ -10,6 +10,7 @@ namespace cppship {
 inline constexpr std::string_view kRepoConfigFile = "cppship.toml";
 inline constexpr std::string_view kIncludePath = "include";
 inline constexpr std::string_view kSrcPath = "src";
+inline constexpr std::string_view kBinPath = "bin";
 inline constexpr std::string_view kLibPath = "lib";
 inline constexpr std::string_view kTestsPath = "tests";
 inline constexpr std::string_view kBenchesPath = "benches";
