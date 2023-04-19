@@ -54,6 +54,8 @@ cppship install
 # Tutorial
 Cppship will generate cmake projects based on your directory structure and cppship.toml.
 
+See [examples](https://github.com/qqiangwu/cppship-examples)
+
 ## cppship.toml
 ```toml
 [package]
@@ -100,6 +102,11 @@ make sure your project have the following structure:
 + lib: lib cpp files go here
 + src: bin cpp files go here, `lib` will be its dependency
 + tests: test cpp files go here, optional, `lib` will be its dependency
+
+## multiple binaries
++ src/main.cpp: primary binary named with your project name
++ src/bin/xxx.cpp: binary xxx
++ src/bin/yyy.cpp: binary yyy
 
 # Usage
 ## Init

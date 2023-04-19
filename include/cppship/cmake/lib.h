@@ -8,8 +8,6 @@
 #include "cppship/core/manifest.h"
 #include "cppship/util/fs.h"
 
-#include <gsl/pointers>
-
 namespace cppship::cmake {
 
 struct LibDesc {

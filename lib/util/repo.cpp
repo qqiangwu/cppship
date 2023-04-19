@@ -55,6 +55,10 @@ std::set<fs::path> cppship::list_sources(std::string_view dir)
 
 std::set<fs::path> cppship::list_sources(const fs::path& source_dir)
 {
+    if (!fs::exists(source_dir)) {
+        return {};
+    }
+
     std::set<fs::path> files;
     for (const fs::directory_entry& entry : fs::recursive_directory_iterator { source_dir }) {
         if (entry.path().extension() == ".cpp") {

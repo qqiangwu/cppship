@@ -1,4 +1,5 @@
 #include "cppship/cmake/generator.h"
+#include "cppship/cmake/bin.h"
 #include "cppship/cmake/lib.h"
 #include "cppship/core/manifest.h"
 #include "cppship/exception.h"
@@ -7,6 +8,7 @@
 
 #include <boost/algorithm/string.hpp>
 #include <fmt/core.h>
+#include <range/v3/action/push_back.hpp>
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/transform.hpp>
 
@@ -114,33 +116,42 @@ void CmakeGenerator::add_lib_sources_()
 
 void CmakeGenerator::add_app_sources_()
 {
-    const auto sources = list_sources_(kSrcPath);
+    const auto root = get_project_root();
+    const auto bins = list_sources(root / kSrcPath / kBinPath);
+
+    auto sources = list_sources(root / kSrcPath);
     if (sources.empty()) {
         return;
     }
 
-    mOut << "\n# APP\n" << fmt::format("add_executable({}_bin {})\n", mName, boost::join(sources, "\n"));
+    for (const auto& bin : bins) {
+        cmake::CmakeBin gen({ .name = bin.stem().string(),
+            .sources = { bin },
+            .lib = mHasLib ? std::optional<std::string> { mName } : std::nullopt,
+            .deps = mDeps,
+            .definitions = mManifest.definitions() });
 
-    mOut << fmt::format("\ntarget_include_directories({}_bin PRIVATE ${{CMAKE_SOURCE_DIR}}/{})\n", mName, kSrcPath);
-    mOut << fmt::format(R"(target_compile_definitions({}_bin PRIVATE {}_VERSION="${{PROJECT_VERSION}}"))", mName,
-        boost::to_upper_copy(std::string(mName)));
-    if (const auto& defs = mManifest.definitions(); !defs.empty()) {
-        mOut << fmt::format("\ntarget_compile_definitions({}_bin PRIVATE {})\n", mName, boost::join(defs, " "));
+        gen.build(mOut);
     }
 
-    mOut << "\n";
-    if (mHasLib) {
-        mOut << fmt::format("target_link_libraries({0}_bin PRIVATE {0})\n", mName);
-    } else {
-        for (const auto& dep : mDeps) {
-            mOut << fmt::format(
-                "target_link_libraries({}_bin PUBLIC {})\n", mName, boost::join(dep.cmake_targets, " "));
-        }
+    std::erase_if(sources, [&bins](const auto& path) { return bins.contains(path); });
+    if (sources.empty()) {
+        return;
     }
 
-    mOut << "\n";
-    mOut << fmt::format(R"(set_target_properties({0}_bin PROPERTIES OUTPUT_NAME "{0}"))", mName);
-    mOut << fmt::format("\n\ninstall(TARGETS {}_bin)\n", mName);
+    std::vector<std::string> definitions { fmt::format(
+        R"({}_VERSION="${{PROJECT_VERSION}}")", boost::to_upper_copy(std::string { mName })) };
+    ranges::push_back(definitions, mManifest.definitions());
+
+    cmake::CmakeBin gen({ .name = fmt::format("{}_bin", mName),
+        .name_alias = std::string { mName },
+        .sources = sources | ranges::to<std::vector<fs::path>>(),
+        .include_dir = root / kSrcPath,
+        .lib = mHasLib ? std::optional<std::string> { mName } : std::nullopt,
+        .deps = mDeps,
+        .definitions = definitions });
+
+    gen.build(mOut);
 }
 
 void CmakeGenerator::add_bin_sources_() { }
