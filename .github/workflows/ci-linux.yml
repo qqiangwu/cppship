@@ -97,3 +97,9 @@ jobs:
         cppship init . --name lib --lib
         cppship build
         cppship test
+
+    - name: Test cppship
+      run: |
+        git clone https://github.com/qqiangwu/cppship-examples.git
+        cd cppship-examples
+        bash verify.sh
