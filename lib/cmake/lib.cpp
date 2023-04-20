@@ -4,6 +4,7 @@
 #include <boost/algorithm/string/join.hpp>
 #include <fmt/core.h>
 #include <range/v3/range/conversion.hpp>
+#include <range/v3/view/filter.hpp>
 #include <range/v3/view/transform.hpp>
 
 using namespace cppship;
@@ -20,6 +21,7 @@ CmakeLib::CmakeLib(LibDesc desc)
     if (mSourceDir) {
         auto sources = list_sources(mSourceDir.value());
         mSources = sources | transform([](const auto& path) { return path.string(); })
+            | filter([](const std::string_view path) { return !path.ends_with(kInnerTestSuffix); })
             | ranges::to<std::vector<std::string>>();
     }
 }

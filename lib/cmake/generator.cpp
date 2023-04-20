@@ -9,6 +9,7 @@
 #include <boost/algorithm/string.hpp>
 #include <fmt/core.h>
 #include <range/v3/action/push_back.hpp>
+#include <range/v3/algorithm/any_of.hpp>
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/transform.hpp>
 
@@ -154,19 +155,22 @@ void CmakeGenerator::add_app_sources_()
     gen.build(mOut);
 }
 
-void CmakeGenerator::add_bin_sources_() { }
-
 void CmakeGenerator::add_test_sources_()
 {
     const auto sources = list_sources_(kTestsPath);
-    if (sources.empty()) {
+    const auto has_inner_tests = ranges::any_of(list_sources(kLibPath), [](const fs::path& path) {
+        const std::string stem = path.filename().string();
+        return stem.ends_with(kInnerTestSuffix);
+    });
+    if (sources.empty() && !has_inner_tests) {
         return;
     }
 
-    mOut << "\n # Tests\n";
-    mOut << R"(file(GLOB_RECURSE srcs RELATIVE "${CMAKE_SOURCE_DIR}/tests" "${CMAKE_SOURCE_DIR}/tests/**.cpp")
-
+    std::string content = R"(
+# Tests
 find_package(GTest REQUIRED)
+
+file(GLOB_RECURSE srcs RELATIVE "${CMAKE_SOURCE_DIR}/tests" "${CMAKE_SOURCE_DIR}/tests/**.cpp")
 
 foreach(file ${srcs})
     # a/b/c.cpp => a_b_c_test
@@ -180,7 +184,29 @@ foreach(file ${srcs})
 
     add_test(${test_target} ${test_target})
 endforeach()
+
+file(GLOB_RECURSE inner_tests RELATIVE "${CMAKE_SOURCE_DIR}/lib/" "${CMAKE_SOURCE_DIR}/lib/**_test.cpp")
+
+foreach(file ${inner_tests})
+    # a/b/c_test.cpp => a_b_c_test
+    string(REPLACE "/" "_" test_target ${file})
+    string(REPLACE ".cpp" "" test_target ${test_target})
+
+    add_executable(${test_target} "${CMAKE_SOURCE_DIR}/lib/${file}")
+
+    target_link_libraries(${test_target} PRIVATE ${PROJECT_NAME})
+    target_link_libraries(${test_target} PRIVATE GTest::gtest_main)
+
+    add_test(${test_target} ${test_target})
+endforeach()
 )";
+
+    if (!mHasLib) {
+        // FIXME: too hack here
+        boost::replace_all(content, "target_link_libraries(${test_target} PRIVATE ${PROJECT_NAME})\n", "");
+    }
+
+    mOut << content;
 }
 
 void CmakeGenerator::emit_footer_()

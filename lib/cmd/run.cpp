@@ -38,8 +38,8 @@ int cmd::run_run(const RunOptions& options)
 
     validate_bin(ctx.root, manifest.name(), options.bin);
 
-    const auto bin = options.bin.value_or(std::string{manifest.name()});
-    const auto target = bin == manifest.name()? fmt::format("{}_bin", bin): bin;
+    const auto bin = options.bin.value_or(std::string { manifest.name() });
+    const auto target = bin == manifest.name() ? fmt::format("{}_bin", bin) : bin;
     const int result = run_build({ .profile = options.profile, .target = target });
     if (result != 0) {
         return EXIT_FAILURE;

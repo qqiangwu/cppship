@@ -25,8 +25,6 @@ private:
 
     void add_app_sources_();
 
-    void add_bin_sources_();
-
     void add_test_sources_();
 
     void emit_footer_();

@@ -41,6 +41,7 @@ TEST(lib, Source)
     fs::create_directory(incdir);
 
     const auto libdir = dir / kLibPath;
+    fs::remove_all(libdir);
     fs::create_directory(libdir);
     write(libdir / "a.cpp", "");
     write(libdir / "b.cpp", "");
@@ -59,6 +60,44 @@ TEST(lib, Source)
 # LIB
 add_library(test {0}/a.cpp
 {0}/b.cpp)
+
+target_include_directories(test PUBLIC ${{CMAKE_SOURCE_DIR}}/lib)
+target_include_directories(test PUBLIC ${{CMAKE_SOURCE_DIR}}/include)
+
+target_link_libraries(test PUBLIC pkg1 pkg2)
+
+target_compile_definitions(test PUBLIC A B)
+)",
+            libdir.string()));
+}
+
+TEST(lib, InnerTest)
+{
+    const auto dir = fs::temp_directory_path();
+    const auto incdir = dir / kIncludePath;
+    fs::create_directory(incdir);
+
+    const auto libdir = dir / kLibPath;
+    fs::remove_all(libdir);
+    fs::create_directory(libdir);
+    write(libdir / "a.cpp", "");
+    write(libdir / "test.cpp", "");
+    write(libdir / "a_test.cpp", "");
+
+    CmakeLib lib({ .name = "test",
+        .include_dir = incdir,
+        .source_dir = libdir,
+        .deps = { { .cmake_package = "pkg", .cmake_targets = { "pkg1", "pkg2" } } },
+        .definitions = { "A", "B" } });
+
+    std::ostringstream oss;
+    lib.build(oss);
+
+    EXPECT_EQ(oss.str(),
+        fmt::format(R"(
+# LIB
+add_library(test {0}/a.cpp
+{0}/test.cpp)
 
 target_include_directories(test PUBLIC ${{CMAKE_SOURCE_DIR}}/lib)
 target_include_directories(test PUBLIC ${{CMAKE_SOURCE_DIR}}/include)

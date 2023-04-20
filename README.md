@@ -108,6 +108,10 @@ make sure your project have the following structure:
 + src/bin/xxx.cpp: binary xxx
 + src/bin/yyy.cpp: binary yyy
 
+## inner tests
++ lib/a_test.cpp: will be viewed as a test
++ lib/sub/b_test.cpp: will be viewed as a test
+
 # Usage
 ## Init
 ```bash
