@@ -23,7 +23,7 @@ void validate_bin(const fs::path& root, const std::string_view name, const std::
             throw Error { fmt::format("binary src/main.cpp is not found") };
         }
     } else if (bin) {
-        if (!fs::exists(root / kSrcPath / "bin" / *bin)) {
+        if (!fs::exists(root / kSrcPath / "bin" / fmt::format("{}.cpp", *bin))) {
             throw Error { fmt::format("binary src/bin/{}.cpp not found", *bin) };
         }
     }
@@ -38,8 +38,8 @@ int cmd::run_run(const RunOptions& options)
 
     validate_bin(ctx.root, manifest.name(), options.bin);
 
-    const auto bin = options.bin.value_or(fmt::format("{}", manifest.name()));
-    const auto target = options.bin.value_or(fmt::format("{}_bin", manifest.name()));
+    const auto bin = options.bin.value_or(std::string{manifest.name()});
+    const auto target = bin == manifest.name()? fmt::format("{}_bin", bin): bin;
     const int result = run_build({ .profile = options.profile, .target = target });
     if (result != 0) {
         return EXIT_FAILURE;
