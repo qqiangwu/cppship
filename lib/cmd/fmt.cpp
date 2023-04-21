@@ -14,6 +14,8 @@ constexpr std::string_view kFmtCmd = "clang-format";
 
 using namespace cppship;
 
+namespace pr = boost::process;
+
 int cmd::run_fmt(const FmtOptions& options)
 {
     require_cmd(kFmtCmd);
@@ -26,8 +28,8 @@ int cmd::run_fmt(const FmtOptions& options)
     for (const auto& file : files) {
         status("format", "{}", file.string());
 
-        const int err = boost::process::system(
-            fmt::format("{} {} {}", kFmtCmd, file.c_str(), (options.fix ? "-i" : "-n --Werror")).c_str());
+        const int err
+            = pr::system(fmt::format("{} {} {}", kFmtCmd, file.c_str(), (options.fix ? "-i" : "-n --Werror")).c_str());
         if (err != 0) {
             exit_code = EXIT_FAILURE;
         }

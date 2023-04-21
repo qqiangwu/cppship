@@ -30,6 +30,9 @@ inline void require_cmd(std::string_view cmd)
     }
 }
 
+// output can be suppress by -q
+int run_cmd(std::string_view cmd);
+
 inline std::string check_output(std::string_view cmd)
 {
     using namespace boost::process;

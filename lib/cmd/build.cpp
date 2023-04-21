@@ -14,7 +14,7 @@
 #include <string>
 
 #include <boost/algorithm/string/find.hpp>
-#include <boost/process/system.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <gsl/util>
 #include <range/v3/algorithm.hpp>
 #include <range/v3/range/conversion.hpp>
@@ -26,7 +26,6 @@
 using namespace cppship;
 
 namespace rng = ranges::views;
-namespace pr = boost::process;
 
 int cmd::run_build(const BuildOptions& options)
 {
@@ -60,28 +59,26 @@ void cmd::conan_detect_profile(const BuildContext& ctx)
     }
 
     status("dependency", "detect profile {}", ctx.profile);
-    pr::pstream out;
-    int res = pr::system("conan profile path default", pr::std_out > out);
-    if (res != 0) {
-        res = pr::system("conan profile detect");
-        if (res != 0) {
-            throw Error { "generate conan profile failed" };
-        }
+    std::string conan_default_profile_path = [] {
+        try {
+            return check_output("conan profile path default");
+        } catch (const RunCmdFailed&) {
+            const int res = run_cmd("conan profile detect");
+            if (res != 0) {
+                throw Error { "detect conan profile failed" };
+            }
 
-        out = pr::pstream {};
-        res = pr::system("conan profile path default", pr::std_out > out);
-        if (res != 0) {
-            throw Error { "conan default profile not found" };
+            return check_output("conan profile path default");
         }
-    }
+    }();
 
-    std::string conan_default_profile_path;
-    out >> conan_default_profile_path;
-    if (!out) {
-        throw Error { "get conan default profile failed" };
-    }
+    boost::trim(conan_default_profile_path);
 
     std::ifstream ifs(conan_default_profile_path);
+    if (!ifs) {
+        throw Error { fmt::format("cannot get default profile from {}", conan_default_profile_path) };
+    }
+
     std::ofstream ofs(ctx.conan_profile_path);
     std::string line;
     bool compiler_detected = false;
@@ -172,7 +169,7 @@ void cmd::conan_install(const BuildContext& ctx)
         ctx.profile_dir.string(), ctx.conan_profile_path.string());
 
     status("dependency", "install dependencies: {}", cmd);
-    int res = pr::system(cmd);
+    int res = run_cmd(cmd);
     if (res != 0) {
         throw Error { "conan install failed" };
     }
@@ -206,7 +203,7 @@ void cmd::cmake_setup(const BuildContext& ctx)
         ctx.profile_dir.string(), ctx.profile, (ctx.profile_dir / "conan").string());
 
     status("config", "config cmake: {}", cmd);
-    const int res = boost::process::system(cmd, boost::process::shell);
+    const int res = run_cmd(cmd);
     if (res != 0) {
         throw Error { "config cmake failed" };
     }
@@ -226,5 +223,5 @@ int cmd::cmake_build(const BuildContext& ctx, const BuildOptions& options)
     }
 
     status("build", "{}", cmd);
-    return boost::process::system(cmd, boost::process::shell);
+    return run_cmd(cmd);
 }
