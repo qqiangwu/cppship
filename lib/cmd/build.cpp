@@ -1,5 +1,6 @@
 #include "cppship/cmd/build.h"
 #include "cppship/cmake/generator.h"
+#include "cppship/cmake/group.h"
 #include "cppship/core/compiler.h"
 #include "cppship/core/dependency.h"
 #include "cppship/exception.h"
@@ -215,11 +216,46 @@ void cmd::cmake_setup(const BuildContext& ctx)
     write(inventory_file, toml::format(toml::value({ { "files", files } })));
 }
 
+namespace {
+
+std::string_view to_cmake_group(cmd::BuildGroup group, const std::string_view lib)
+{
+    using namespace cmd;
+    using namespace cmake;
+
+    switch (group) {
+    case BuildGroup::binaries:
+        return kCppshipGroupBinaries;
+
+    case BuildGroup::benches:
+        return kCppshipGroupBenches;
+
+    case BuildGroup::tests:
+        return kCppshipGroupTests;
+
+    case BuildGroup::examples:
+        return kCppshipGroupExamples;
+
+    case BuildGroup::lib:
+        return lib;
+    }
+
+    std::abort();
+}
+
+}
+
 int cmd::cmake_build(const BuildContext& ctx, const BuildOptions& options)
 {
     auto cmd = fmt::format("cmake --build {} -j {}", ctx.profile_dir.string(), options.max_concurrency);
     if (options.target) {
         cmd += fmt::format(" --target {}", *options.target);
+    } else if (options.groups.empty()) {
+        cmd += fmt::format(" --target {}", cmake::kCppshipGroupBinaries);
+    } else {
+        for (const auto group : options.groups) {
+            cmd += fmt::format(" --target {}", to_cmake_group(group, ctx.manifest.name()));
+        }
     }
 
     status("build", "{}", cmd);

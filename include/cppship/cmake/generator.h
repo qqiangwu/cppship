@@ -41,6 +41,8 @@ private:
     std::string_view mName = mManifest.name();
 
     bool mHasLib = false;
+    bool mHasTests = false;
+    std::set<std::string> mBinaryTargets;
 };
 
 }
