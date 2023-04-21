@@ -52,6 +52,7 @@ std::string CmakeGenerator::build() &&
 
     add_lib_sources_();
     add_app_sources_();
+    add_examples_();
 
     add_test_sources_();
 
@@ -106,11 +107,13 @@ void CmakeGenerator::add_lib_sources_()
         return;
     }
 
-    cmake::CmakeLib lib({ .name = std::string { mName },
+    cmake::CmakeLib lib({
+        .name = std::string { mName },
         .include_dir = include_dir,
         .source_dir = fs::exists(source_dir) ? std::optional { source_dir } : std::nullopt,
         .deps = mDeps,
-        .definitions = mManifest.definitions() });
+        .definitions = mManifest.definitions(),
+    });
     lib.build(mOut);
 
     mHasLib = true;
@@ -130,11 +133,13 @@ void CmakeGenerator::add_app_sources_()
     }
 
     for (const auto& bin : bins) {
-        cmake::CmakeBin gen({ .name = bin.stem().string(),
+        cmake::CmakeBin gen({
+            .name = bin.stem().string(),
             .sources = { bin },
             .lib = mHasLib ? std::optional<std::string> { mName } : std::nullopt,
             .deps = mDeps,
-            .definitions = mManifest.definitions() });
+            .definitions = mManifest.definitions(),
+        });
 
         gen.build(mOut);
         mBinaryTargets.emplace(bin.stem().string());
@@ -149,16 +154,37 @@ void CmakeGenerator::add_app_sources_()
         R"({}_VERSION="${{PROJECT_VERSION}}")", boost::to_upper_copy(std::string { mName })) };
     ranges::push_back(definitions, mManifest.definitions());
 
-    cmake::CmakeBin gen({ .name = fmt::format("{}_bin", mName),
+    cmake::CmakeBin gen({
+        .name = fmt::format("{}_bin", mName),
         .name_alias = std::string { mName },
         .sources = sources | ranges::to<std::vector<fs::path>>(),
         .include_dir = root / kSrcPath,
         .lib = mHasLib ? std::optional<std::string> { mName } : std::nullopt,
         .deps = mDeps,
-        .definitions = definitions });
+        .definitions = definitions,
+    });
 
     gen.build(mOut);
     mBinaryTargets.emplace(fmt::format("{}_bin", mName));
+}
+
+void CmakeGenerator::add_examples_()
+{
+    const auto root = get_project_root();
+    const auto examples = list_sources(root / kExamplesPath);
+
+    for (const auto& bin : examples) {
+        cmake::CmakeBin gen({
+            .name = bin.stem().string(),
+            .sources = { bin },
+            .lib = mHasLib ? std::optional<std::string> { mName } : std::nullopt,
+            .deps = mDeps,
+            .definitions = mManifest.definitions(),
+        });
+
+        gen.build(mOut);
+        mExampleTargets.emplace(bin.stem().string());
+    }
 }
 
 void CmakeGenerator::add_test_sources_()
@@ -224,6 +250,8 @@ void CmakeGenerator::emit_footer_()
     mOut << "\n# Groups\n"
          << fmt::format(
                 "add_custom_target({} DEPENDS {})\n", cmake::kCppshipGroupBinaries, boost::join(mBinaryTargets, " "))
+         << fmt::format(
+                "add_custom_target({} DEPENDS {})\n", cmake::kCppshipGroupExamples, boost::join(mExampleTargets, " "))
          << fmt::format(
                 "add_custom_target({} DEPENDS {})\n", cmake::kCppshipGroupTests, mHasTests ? "${test_targets}" : "");
 

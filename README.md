@@ -112,6 +112,15 @@ make sure your project have the following structure:
 + lib/a_test.cpp: will be viewed as a test
 + lib/sub/b_test.cpp: will be viewed as a test
 
+## examples
++ include
++ lib
++ src
++ tests
++ examples
+  + ex1.cpp: depends on lib
+  + ex2.cpp: depends on lib
+
 # Usage
 ## Init
 ```bash

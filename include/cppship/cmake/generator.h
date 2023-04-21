@@ -25,6 +25,8 @@ private:
 
     void add_app_sources_();
 
+    void add_examples_();
+
     void add_test_sources_();
 
     void emit_footer_();
@@ -43,6 +45,7 @@ private:
     bool mHasLib = false;
     bool mHasTests = false;
     std::set<std::string> mBinaryTargets;
+    std::set<std::string> mExampleTargets;
 };
 
 }

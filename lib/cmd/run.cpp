@@ -16,30 +16,58 @@ using namespace cppship;
 
 namespace {
 
-void validate_bin(const fs::path& root, const std::string_view name, const std::optional<std::string>& bin)
+void validate_options(const cmd::RunOptions& options)
 {
-    if (!bin || *bin == name) {
-        if (!fs::exists(root / kSrcPath / "main.cpp")) {
-            throw Error { fmt::format("binary src/main.cpp is not found") };
+    if (options.bin && options.example) {
+        throw Error { "should not specify --bin and --example in the same time" };
+    }
+}
+
+void validate_bin(const fs::path& root, const std::string_view name, const cmd::RunOptions& opt)
+{
+    if (const auto& bin = opt.bin) {
+        if (*bin == name) {
+            if (!fs::exists(root / kSrcPath / "main.cpp")) {
+                throw Error { fmt::format("binary src/main.cpp is not found") };
+            }
+            return;
         }
-    } else if (bin) {
+
         if (!fs::exists(root / kSrcPath / "bin" / fmt::format("{}.cpp", *bin))) {
             throw Error { fmt::format("binary src/bin/{}.cpp not found", *bin) };
         }
+    } else if (const auto& example = opt.example) {
+        if (!fs::exists(root / kExamplesPath / fmt::format("{}.cpp", *example))) {
+            throw Error { fmt::format("example examples/{}.cpp not found", *example) };
+        }
     }
+}
+
+std::string choose_binary(const cmd::RunOptions& options, const Manifest& manifest)
+{
+    if (options.example) {
+        return *options.example;
+    }
+    if (options.bin) {
+        return *options.bin;
+    }
+
+    return fmt::format("{}", manifest.name());
 }
 
 }
 
 int cmd::run_run(const RunOptions& options)
 {
+    validate_options(options);
+
     BuildContext ctx(options.profile);
     Manifest manifest(ctx.metafile);
 
-    validate_bin(ctx.root, manifest.name(), options.bin);
+    validate_bin(ctx.root, manifest.name(), options);
 
-    const auto bin = options.bin.value_or(std::string { manifest.name() });
-    const auto target = bin == manifest.name() ? fmt::format("{}_bin", bin) : bin;
+    const auto bin = choose_binary(options, manifest);
+    const auto target = (bin == manifest.name()) ? fmt::format("{}_bin", bin) : bin;
     const int result = run_build({ .profile = options.profile, .target = target });
     if (result != 0) {
         return EXIT_FAILURE;

@@ -106,8 +106,23 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
 
     // build
     auto& build = commands.emplace_back("build", common, [](const ArgumentParser& cmd) {
-        return cmd::run_build(
-            { .max_concurrency = get_concurrency(cmd), .profile = get_profile(cmd), .dry_run = cmd.get<bool>("-d") });
+        std::set<cmd::BuildGroup> groups;
+        if (cmd.get<bool>("--examples")) {
+            groups.insert(cmd::BuildGroup::examples);
+        }
+        if (cmd.get<bool>("--tests")) {
+            groups.insert(cmd::BuildGroup::tests);
+        }
+        if (cmd.get<bool>("--bins")) {
+            groups.insert(cmd::BuildGroup::binaries);
+        }
+
+        return cmd::run_build({
+            .max_concurrency = get_concurrency(cmd),
+            .profile = get_profile(cmd),
+            .dry_run = cmd.get<bool>("-d"),
+            .groups = groups,
+        });
     });
 
     build.parser.add_description("build the project");
@@ -121,6 +136,9 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
         .default_value(false)
         .implicit_value(true);
     build.parser.add_argument("--profile").help("build with specific profile").default_value(kProfileDebug);
+    build.parser.add_argument("--examples").help("build all examples").default_value(false).implicit_value(true);
+    build.parser.add_argument("--tests").help("build all tests").default_value(false).implicit_value(true);
+    build.parser.add_argument("--bins").help("build all binaries").default_value(false).implicit_value(true);
 
     // clean
     auto& clean = commands.emplace_back("clean", common, [](const ArgumentParser&) { return cmd::run_clean({}); });
@@ -140,8 +158,12 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
     // run
     auto& run = commands.emplace_back("run", common, [](const ArgumentParser& cmd) {
         const auto remaining = cmd.present<std::vector<std::string>>("--").value_or(std::vector<std::string> {});
-        return cmd::run_run(
-            { .profile = get_profile(cmd), .args = boost::join(remaining, " "), .bin = cmd.present("--bin") });
+        return cmd::run_run({
+            .profile = get_profile(cmd),
+            .args = boost::join(remaining, " "),
+            .bin = cmd.present("--bin"),
+            .example = cmd.present("--example"),
+        });
     });
 
     run.parser.add_description("run binary");
@@ -151,6 +173,7 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
         .metavar("profile")
         .default_value(kProfileDebug);
     run.parser.add_argument("--bin").help("name of binary to run").metavar("name");
+    run.parser.add_argument("--example").help("name of example to run").metavar("name");
     run.parser.add_argument("--").help("extra args").metavar("args").remaining();
 
     // test
