@@ -84,7 +84,6 @@ jobs:
         mkdir .bin && cd .bin
         cppship init . --name app
         cppship build
-        cppship build -r
         cppship run
         cppship test
         cppship install

@@ -128,15 +128,14 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
     clean.parser.add_description("clean build");
 
     // install
-    auto& install = commands.emplace_back(
-        "install", common, [](const ArgumentParser& cmd) { return cmd::run_install({ .profile = get_profile(cmd) }); });
+    auto& install = commands.emplace_back("install", common,
+        [](const ArgumentParser& cmd) { return cmd::run_install({ .profile = parse_profile(cmd.get("--profile")) }); });
 
     install.parser.add_description("install binary if exists");
-    install.parser.add_argument("-r").help("build in release mode").default_value(false).implicit_value(true);
     install.parser.add_argument("--profile")
         .help("build with specific profile")
         .metavar("profile")
-        .default_value(kProfileDebug);
+        .default_value(std::string { kProfileRelease });
 
     // run
     auto& run = commands.emplace_back("run", common, [](const ArgumentParser& cmd) {
