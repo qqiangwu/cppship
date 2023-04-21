@@ -75,7 +75,7 @@ std::set<fs::path> cppship::list_all_files()
 
     std::set<fs::path> files;
 
-    for (const auto subdir : { kIncludePath, kSrcPath, kLibPath, kTestsPath, kBenchesPath }) {
+    for (const auto subdir : { kIncludePath, kSrcPath, kLibPath, kTestsPath, kBenchesPath, kExamplesPath }) {
         const auto dir = root_dir / subdir;
         if (!fs::exists(dir)) {
             continue;
