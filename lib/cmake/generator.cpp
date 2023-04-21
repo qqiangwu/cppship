@@ -1,5 +1,6 @@
 #include "cppship/cmake/generator.h"
 #include "cppship/cmake/bin.h"
+#include "cppship/cmake/group.h"
 #include "cppship/cmake/lib.h"
 #include "cppship/core/manifest.h"
 #include "cppship/exception.h"
@@ -113,6 +114,9 @@ void CmakeGenerator::add_lib_sources_()
     lib.build(mOut);
 
     mHasLib = true;
+
+    // view lib as a target to easy `cppship build` for header only lib
+    mBinaryTargets.emplace(mName);
 }
 
 void CmakeGenerator::add_app_sources_()
@@ -133,6 +137,7 @@ void CmakeGenerator::add_app_sources_()
             .definitions = mManifest.definitions() });
 
         gen.build(mOut);
+        mBinaryTargets.emplace(bin.stem().string());
     }
 
     std::erase_if(sources, [&bins](const auto& path) { return bins.contains(path); });
@@ -153,6 +158,7 @@ void CmakeGenerator::add_app_sources_()
         .definitions = definitions });
 
     gen.build(mOut);
+    mBinaryTargets.emplace(fmt::format("{}_bin", mName));
 }
 
 void CmakeGenerator::add_test_sources_()
@@ -171,6 +177,7 @@ void CmakeGenerator::add_test_sources_()
 find_package(GTest REQUIRED)
 
 file(GLOB_RECURSE srcs RELATIVE "${CMAKE_SOURCE_DIR}/tests" "${CMAKE_SOURCE_DIR}/tests/**.cpp")
+set(test_targets "")
 
 foreach(file ${srcs})
     # a/b/c.cpp => a_b_c_test
@@ -178,6 +185,7 @@ foreach(file ${srcs})
     string(REPLACE ".cpp" "_test" test_target ${test_target})
 
     add_executable(${test_target} "${CMAKE_SOURCE_DIR}/tests/${file}")
+    list(APPEND test_targets ${test_target})
 
     target_link_libraries(${test_target} PRIVATE ${PROJECT_NAME})
     target_link_libraries(${test_target} PRIVATE GTest::gtest_main)
@@ -193,6 +201,7 @@ foreach(file ${inner_tests})
     string(REPLACE ".cpp" "" test_target ${test_target})
 
     add_executable(${test_target} "${CMAKE_SOURCE_DIR}/lib/${file}")
+    list(APPEND test_targets ${test_target})
 
     target_link_libraries(${test_target} PRIVATE ${PROJECT_NAME})
     target_link_libraries(${test_target} PRIVATE GTest::gtest_main)
@@ -207,10 +216,17 @@ endforeach()
     }
 
     mOut << content;
+    mHasTests = true;
 }
 
 void CmakeGenerator::emit_footer_()
 {
+    mOut << "\n# Groups\n"
+         << fmt::format(
+                "add_custom_target({} DEPENDS {})\n", cmake::kCppshipGroupBinaries, boost::join(mBinaryTargets, " "))
+         << fmt::format(
+                "add_custom_target({} DEPENDS {})\n", cmake::kCppshipGroupTests, mHasTests ? "${test_targets}" : "");
+
     mOut << "\n# Footer\n"
          << R"(set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})

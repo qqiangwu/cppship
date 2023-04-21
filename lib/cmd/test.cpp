@@ -14,7 +14,7 @@ using namespace cppship;
 
 int cmd::run_test(const TestOptions& options)
 {
-    const int result = run_build({ .profile = options.profile });
+    const int result = run_build({ .profile = options.profile, .groups = { BuildGroup::tests } });
     if (result != 0) {
         return EXIT_FAILURE;
     }
