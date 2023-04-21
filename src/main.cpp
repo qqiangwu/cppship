@@ -28,11 +28,12 @@ struct SubCommand {
     ArgumentParser parser;
     CommandRunner cmd_runner;
 
-    SubCommand(std::string_view cmd, CommandRunner runner)
+    SubCommand(std::string_view cmd, const ArgumentParser& common, CommandRunner runner)
         : name(cmd)
-        , parser(name)
+        , parser(name, "", argparse::default_arguments::help)
         , cmd_runner(runner)
     {
+        parser.add_parents(common);
     }
 
     int run() { return cmd_runner(parser); }
@@ -67,19 +68,18 @@ CxxStd parse_cxx_std(const int value)
     return *cxx;
 }
 
-std::list<SubCommand> build_commands()
+std::list<SubCommand> build_commands(const ArgumentParser& common)
 {
     std::list<SubCommand> commands;
 
     // lint
-    auto& lint = commands.emplace_back("lint", [](const ArgumentParser& cmd) {
+    auto& lint = commands.emplace_back("lint", common, [](const ArgumentParser& cmd) {
         return cmd::run_lint({ .all = cmd.get<bool>("all"),
             .cached_only = cmd.get<bool>("cached"),
             .max_concurrency = get_concurrency(cmd) });
     });
 
     lint.parser.add_description("run clang-tidy on the code");
-
     lint.parser.add_argument("-a", "--all")
         .help("run on all code, default by diff")
         .default_value(false)
@@ -91,7 +91,7 @@ std::list<SubCommand> build_commands()
         .scan<'d', int>();
 
     // fmt
-    auto& fmt = commands.emplace_back("fmt", [](const ArgumentParser& cmd) {
+    auto& fmt = commands.emplace_back("fmt", common, [](const ArgumentParser& cmd) {
         return cmd::run_fmt({
             .all = cmd.get<bool>("all"),
             .cached_only = cmd.get<bool>("cached"),
@@ -100,19 +100,17 @@ std::list<SubCommand> build_commands()
     });
 
     fmt.parser.add_description("run clang-format on the code");
-
     fmt.parser.add_argument("-a", "--all").help("run on all code or delta").default_value(false).implicit_value(true);
     fmt.parser.add_argument("--cached").help("only lint staged changes").default_value(false).implicit_value(true);
     fmt.parser.add_argument("-f", "--fix").help("fix or check-only(default)").default_value(false).implicit_value(true);
 
     // build
-    auto& build = commands.emplace_back("build", [](const ArgumentParser& cmd) {
+    auto& build = commands.emplace_back("build", common, [](const ArgumentParser& cmd) {
         return cmd::run_build(
             { .max_concurrency = get_concurrency(cmd), .profile = get_profile(cmd), .dry_run = cmd.get<bool>("-d") });
     });
 
     build.parser.add_description("build the project");
-
     build.parser.add_argument("-j", "--jobs")
         .help("concurrent jobs, default is cpu cores")
         .default_value(gsl::narrow_cast<int>(std::thread::hardware_concurrency()))
@@ -125,12 +123,14 @@ std::list<SubCommand> build_commands()
     build.parser.add_argument("--profile").help("build with specific profile").default_value(kProfileDebug);
 
     // clean
-    auto& clean = commands.emplace_back("clean", [](const ArgumentParser&) { return cmd::run_clean({}); });
+    auto& clean = commands.emplace_back("clean", common, [](const ArgumentParser&) { return cmd::run_clean({}); });
+
     clean.parser.add_description("clean build");
 
     // install
     auto& install = commands.emplace_back(
-        "install", [](const ArgumentParser& cmd) { return cmd::run_install({ .profile = get_profile(cmd) }); });
+        "install", common, [](const ArgumentParser& cmd) { return cmd::run_install({ .profile = get_profile(cmd) }); });
+
     install.parser.add_description("install binary if exists");
     install.parser.add_argument("-r").help("build in release mode").default_value(false).implicit_value(true);
     install.parser.add_argument("--profile")
@@ -139,7 +139,7 @@ std::list<SubCommand> build_commands()
         .default_value(kProfileDebug);
 
     // run
-    auto& run = commands.emplace_back("run", [](const ArgumentParser& cmd) {
+    auto& run = commands.emplace_back("run", common, [](const ArgumentParser& cmd) {
         const auto remaining = cmd.present<std::vector<std::string>>("--").value_or(std::vector<std::string> {});
         return cmd::run_run(
             { .profile = get_profile(cmd), .args = boost::join(remaining, " "), .bin = cmd.present("--bin") });
@@ -156,7 +156,7 @@ std::list<SubCommand> build_commands()
 
     // test
     auto& test = commands.emplace_back(
-        "test", [](const ArgumentParser& cmd) { return cmd::run_test({ .profile = get_profile(cmd) }); });
+        "test", common, [](const ArgumentParser& cmd) { return cmd::run_test({ .profile = get_profile(cmd) }); });
 
     test.parser.add_description("run tests");
     test.parser.add_argument("-r").help("build in release mode").default_value(false).implicit_value(true);
@@ -166,7 +166,7 @@ std::list<SubCommand> build_commands()
         .default_value(kProfileDebug);
 
     // init
-    auto& init = commands.emplace_back("init", [](const ArgumentParser& cmd) {
+    auto& init = commands.emplace_back("init", common, [](const ArgumentParser& cmd) {
         cmd::InitOptions options {
             .vcs = cmd.get<bool>("vcs"), .lib = cmd.get<bool>("lib"), .bin = cmd.get<bool>("bin")
         };
@@ -204,10 +204,14 @@ int main(int argc, const char* argv[])
 try {
     spdlog::set_pattern("%v");
 
-    argparse::ArgumentParser app("cppship", CPPSHIP_VERSION);
-    app.add_argument("-V", "--verbose").help("show verbose log").default_value(false).implicit_value(true);
+    ArgumentParser common("common", "", argparse::default_arguments::none);
+    common.add_argument("-V", "--verbose").help("show verbose log").default_value(false).implicit_value(true);
+    common.add_argument("-q", "--quiet").help("do not pring log messages").default_value(false).implicit_value(true);
 
-    auto sub_commands = build_commands();
+    ArgumentParser app("cppship", CPPSHIP_VERSION);
+    app.add_parents(common);
+
+    auto sub_commands = build_commands(common);
     for (auto& cmd : sub_commands) {
         app.add_subparser(cmd.parser);
     }
@@ -215,12 +219,8 @@ try {
     try {
         app.parse_args(argc, argv);
     } catch (const std::runtime_error& err) {
-        error("{}\n\n{}", err.what(), app.help().str());
+        error("{}\n\ntry -h to get usage", err.what());
         return EXIT_FAILURE;
-    }
-
-    if (app.get<bool>("-V")) {
-        spdlog::set_level(spdlog::level::debug);
     }
 
     try {
@@ -228,6 +228,13 @@ try {
         if (iter == sub_commands.end()) {
             std::cerr << app << std::endl;
             return EXIT_SUCCESS;
+        }
+
+        if (app.get<bool>("-V") || iter->parser.get<bool>("-V")) {
+            spdlog::set_level(spdlog::level::debug);
+        }
+        if (app.get<bool>("-q") || iter->parser.get<bool>("-q")) {
+            spdlog::set_level(spdlog::level::warn);
         }
 
         return iter->run();
