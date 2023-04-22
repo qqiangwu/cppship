@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -42,6 +42,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
 
     - name: Install conan
       run: pip3 install conan
@@ -75,8 +77,10 @@ jobs:
     - name: Lint and format
       if: matrix.build_type == 'Release' && matrix.compiler.cxx == 'clang++-14'
       run: |
-        cppship fmt -a
-        cppship lint -a
+        mergebase=$(git merge-base --fork-point origin/${{github.event.pull_request.base.ref}})
+        cppship fmt
+        cppship fmt -c ${mergebase}
+        cppship lint -c ${mergebase}
         cppship clean
 
     - name: Cppship init app

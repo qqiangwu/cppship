@@ -146,17 +146,34 @@ cppship build -r
 
 # dry-run, config cmake and generate compile_commands.json under build
 cppship build -d
+
+# build tests only
+cppship build --tests
+
+# build examples only
+cppship build --examples
+
+# build binaries only
+cppship build --bins
 ```
 
 ## run
 ```bash
 cppship run
 cppship run -- a b c extra_args
+
+# run a binary
+cppship run --bin <name>
+
+# run an example
+cppship run --example <name>
 ```
 
 ## test
 ```
 cppship test
+cppship test --rerun-failed
+cppship test <testname>
 ```
 
 ## install
@@ -181,6 +198,9 @@ cppship fmt --cached
 # fix it
 cppship fmt -f
 
+# reun against commit
+cppship fmt -c <commit>
+
 # format all files
 cppship fmt -a
 cppship fmt -a -f
@@ -196,4 +216,6 @@ cppship lint
 cppship lint --cached
 # lint all
 cppship lint -a
+# lint against commit
+cppship lint -c <commit>
 ```

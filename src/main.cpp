@@ -19,6 +19,7 @@
 #endif
 
 using namespace cppship;
+using namespace std::string_literals;
 using argparse::ArgumentParser;
 
 using CommandRunner = int (*)(const ArgumentParser&);
@@ -78,6 +79,7 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
             .all = cmd.get<bool>("all"),
             .cached_only = cmd.get<bool>("cached"),
             .max_concurrency = get_concurrency(cmd),
+            .commit = cmd.get("--commit"),
         });
     });
 
@@ -91,6 +93,7 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
         .help("concurrent jobs, default is cpu cores")
         .default_value(gsl::narrow_cast<int>(std::thread::hardware_concurrency()))
         .scan<'d', int>();
+    lint.parser.add_argument("-c", "--commit").help("run on delta changes against the commit").default_value("HEAD"s);
 
     // fmt
     auto& fmt = commands.emplace_back("fmt", common, [](const ArgumentParser& cmd) {
@@ -98,6 +101,7 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
             .all = cmd.get<bool>("all"),
             .cached_only = cmd.get<bool>("cached"),
             .fix = cmd.get<bool>("fix"),
+            .commit = cmd.get("--commit"),
         });
     });
 
@@ -105,6 +109,7 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
     fmt.parser.add_argument("-a", "--all").help("run on all code or delta").default_value(false).implicit_value(true);
     fmt.parser.add_argument("--cached").help("only lint staged changes").default_value(false).implicit_value(true);
     fmt.parser.add_argument("-f", "--fix").help("fix or check-only(default)").default_value(false).implicit_value(true);
+    fmt.parser.add_argument("-c", "--commit").help("run on delta changes against the commit").default_value("HEAD"s);
 
     // build
     auto& build = commands.emplace_back("build", common, [](const ArgumentParser& cmd) {

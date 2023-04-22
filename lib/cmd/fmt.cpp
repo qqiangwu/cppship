@@ -20,7 +20,9 @@ int cmd::run_fmt(const FmtOptions& options)
 {
     require_cmd(kFmtCmd);
 
-    const auto files = options.all ? list_all_files() : list_changed_files({ .cached_only = options.cached_only });
+    const auto files = options.all
+        ? list_all_files()
+        : list_changed_files({ .cached_only = options.cached_only, .commit = options.commit });
 
     int exit_code = 0;
 
