@@ -74,9 +74,11 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
 
     // lint
     auto& lint = commands.emplace_back("lint", common, [](const ArgumentParser& cmd) {
-        return cmd::run_lint({ .all = cmd.get<bool>("all"),
+        return cmd::run_lint({
+            .all = cmd.get<bool>("all"),
             .cached_only = cmd.get<bool>("cached"),
-            .max_concurrency = get_concurrency(cmd) });
+            .max_concurrency = get_concurrency(cmd),
+        });
     });
 
     lint.parser.add_description("run clang-tidy on the code");
@@ -128,6 +130,7 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
     build.parser.add_description("build the project");
     build.parser.add_argument("-j", "--jobs")
         .help("concurrent jobs, default is cpu cores")
+        .metavar("N")
         .default_value(gsl::narrow_cast<int>(std::thread::hardware_concurrency()))
         .scan<'d', int>();
     build.parser.add_argument("-r").help("build in release mode").default_value(false).implicit_value(true);
@@ -146,8 +149,11 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
     clean.parser.add_description("clean build");
 
     // install
-    auto& install = commands.emplace_back("install", common,
-        [](const ArgumentParser& cmd) { return cmd::run_install({ .profile = parse_profile(cmd.get("--profile")) }); });
+    auto& install = commands.emplace_back("install", common, [](const ArgumentParser& cmd) {
+        return cmd::run_install({
+            .profile = parse_profile(cmd.get("--profile")),
+        });
+    });
 
     install.parser.add_description("install binary if exists");
     install.parser.add_argument("--profile")
@@ -177,8 +183,11 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
     run.parser.add_argument("--").help("extra args").metavar("args").remaining();
 
     // test
-    auto& test = commands.emplace_back(
-        "test", common, [](const ArgumentParser& cmd) { return cmd::run_test({ .profile = get_profile(cmd) }); });
+    auto& test = commands.emplace_back("test", common, [](const ArgumentParser& cmd) {
+        return cmd::run_test({
+            .profile = get_profile(cmd),
+        });
+    });
 
     test.parser.add_description("run tests");
     test.parser.add_argument("-r").help("build in release mode").default_value(false).implicit_value(true);
@@ -190,7 +199,9 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
     // init
     auto& init = commands.emplace_back("init", common, [](const ArgumentParser& cmd) {
         cmd::InitOptions options {
-            .vcs = cmd.get<bool>("vcs"), .lib = cmd.get<bool>("lib"), .bin = cmd.get<bool>("bin")
+            .vcs = cmd.get<bool>("vcs"),
+            .lib = cmd.get<bool>("lib"),
+            .bin = cmd.get<bool>("bin"),
         };
         if (const std::string& dir = cmd.get("path"); dir == ".") {
             options.dir = fs::current_path();
