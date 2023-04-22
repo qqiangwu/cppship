@@ -101,7 +101,7 @@ make sure your project have the following structure:
 + include: lib include dir
 + lib: lib cpp files go here
 + src: bin cpp files go here, `lib` will be its dependency
-+ tests: test cpp files go here, optional, `lib` will be its dependency
++ tests: test cpp files go here, optional, `lib` and `gtest` will be its dependency
 
 ## multiple binaries
 + src/main.cpp: primary binary named with your project name
@@ -120,6 +120,11 @@ make sure your project have the following structure:
 + examples
   + ex1.cpp: depends on lib
   + ex2.cpp: depends on lib
+
+## benchmarks
++ benches
+  + b1.cpp: depends on lib, google benchmark
+  + b2.cpp: depends on lib, google benchmark
 
 # Usage
 ## Init
