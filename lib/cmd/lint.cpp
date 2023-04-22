@@ -23,7 +23,9 @@ int cmd::run_lint(const LintOptions& options)
     require_cmd(kLintCmd);
 
     ScopedCurrentDir guard(get_project_root());
-    const auto files = options.all ? list_all_files() : list_changed_files({ .cached_only = options.cached_only });
+    const auto files = options.all
+        ? list_all_files()
+        : list_changed_files({ .cached_only = options.cached_only, .commit = options.commit });
     const auto concurrency = options.max_concurrency;
 
     BS::thread_pool_light pool(concurrency);

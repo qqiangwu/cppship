@@ -25,8 +25,8 @@ inline constexpr std::string_view kRepoHead = "HEAD";
 fs::path get_project_root();
 
 struct ListOptions {
-    std::string_view commit = kRepoHead;
     bool cached_only = true;
+    std::string_view commit = kRepoHead;
 };
 
 std::set<fs::path> list_sources(std::string_view dir);

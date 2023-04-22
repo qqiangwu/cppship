@@ -98,7 +98,7 @@ std::set<fs::path> cppship::list_changed_files(const ListOptions& options)
         return list_all_files();
     }
 
-    const auto cmd = fmt::format("git diff --name-only {}", (options.cached_only ? "--cached" : ""));
+    const auto cmd = fmt::format("git diff {} --name-only {}", options.commit, (options.cached_only ? "--cached" : ""));
     const auto out = check_output(cmd);
 
     std::set<std::string> lines;
