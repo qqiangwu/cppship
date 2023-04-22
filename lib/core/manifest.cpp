@@ -1,6 +1,7 @@
 #include "cppship/core/manifest.h"
 #include "cppship/exception.h"
 #include "cppship/util/fs.h"
+#include "cppship/util/io.h"
 
 #include <stdexcept>
 
@@ -116,4 +117,19 @@ void cppship::generate_manifest(std::string_view name, CxxStd std, const fs::pat
     } catch (const std::system_error& e) {
         throw Error { fmt::format("write filed {} failed: {}", manifest.string(), e.what()) };
     }
+
+    // add .clang-format
+    write(dir / ".clang-format", R"(---
+Language: Cpp
+BasedOnStyle: WebKit
+ColumnLimit: 120
+)");
+
+    // add .clang-tidy
+    write(dir / ".clang-tidy", R"(---
+HeaderFilterRegex: ^(include|src|tests|benches)
+Checks: -*,boost-*,bugprone-*,-bugprone-narrowing-conversions,-bugprone-easily-swappable-parameters,clang-analyzer-*,concurrency-*,cppcoreguidelines-*,misc-*,modernize-*,-modernize-pass-by-value,-modernize-use-trailing-return-type,-modernize-use-nodiscard,performance-*,portability-*,readability-*,-readability-make-member-function-const,-readability-redundant-access-specifiers,-readability-convert-member-functions-to-static,-readability-magic-numbers,-readability-named-parameter
+WarningsAsErrors: '*'
+InheritParentConfig: false
+)");
 }
