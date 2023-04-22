@@ -186,6 +186,8 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
     auto& test = commands.emplace_back("test", common, [](const ArgumentParser& cmd) {
         return cmd::run_test({
             .profile = get_profile(cmd),
+            .target = cmd.present("testname"),
+            .rerun_failed = cmd.get<bool>("--rerun-failed"),
         });
     });
 
@@ -195,6 +197,13 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
         .help("build with specific profile")
         .metavar("profile")
         .default_value(kProfileDebug);
+    test.parser.add_argument("--rerun-failed")
+        .help("run only the tests that failed previously")
+        .default_value(false)
+        .implicit_value(true);
+    test.parser.add_argument("testname")
+        .help("if specified, only run tests containing this string in their names")
+        .nargs(0, 1);
 
     // init
     auto& init = commands.emplace_back("init", common, [](const ArgumentParser& cmd) {
