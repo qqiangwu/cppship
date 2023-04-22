@@ -88,6 +88,8 @@ jobs:
       run: |
         mkdir .bin && cd .bin
         cppship init . --name app
+        test -f .clang-tidy
+        test -f .clang-format
         cppship build
         cppship run
         cppship test
@@ -99,6 +101,8 @@ jobs:
       run: |
         mkdir .lib && cd .lib
         cppship init . --name lib --lib
+        test -f .clang-tidy
+        test -f .clang-format
         cppship build
         cppship test
 
