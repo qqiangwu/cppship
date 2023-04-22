@@ -176,6 +176,19 @@ void CmakeGenerator::add_benches_()
     const auto root = get_project_root();
     const auto benches = list_sources(root / kBenchesPath);
 
+    if (benches.empty()) {
+        return;
+    }
+
+    mOut << R"(# BENCH
+find_package(benchmark REQUIRED)
+)";
+
+    auto deps = mDeps;
+    deps.push_back({
+        .cmake_package = "benchmark",
+        .cmake_targets = { "benchmark::benchmark" },
+    });
     for (const auto& bin : benches) {
         const auto target = fmt::format("{}_bench", bin.stem().string());
 
@@ -183,7 +196,7 @@ void CmakeGenerator::add_benches_()
             .name = target,
             .sources = { bin },
             .lib = mHasLib ? std::optional<std::string> { mName } : std::nullopt,
-            .deps = mDeps,
+            .deps = deps,
             .definitions = mManifest.definitions(),
         });
 

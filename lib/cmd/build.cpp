@@ -140,7 +140,8 @@ void cmd::conan_setup(const BuildContext& ctx)
 
     oss << '\n'
         << "[test_requires]\n"
-        << "gtest/cci.20210126\n";
+        << "gtest/cci.20210126\n"
+        << "benchmark/1.7.1\n";
 
     oss << '\n';
     oss << "[generators]\n"
