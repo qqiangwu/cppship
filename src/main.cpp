@@ -123,6 +123,9 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
         if (cmd.get<bool>("--bins")) {
             groups.insert(cmd::BuildGroup::binaries);
         }
+        if (cmd.get<bool>("--benches")) {
+            groups.insert(cmd::BuildGroup::benches);
+        }
 
         return cmd::run_build({
             .max_concurrency = get_concurrency(cmd),
@@ -147,6 +150,7 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
     build.parser.add_argument("--examples").help("build all examples").default_value(false).implicit_value(true);
     build.parser.add_argument("--tests").help("build all tests").default_value(false).implicit_value(true);
     build.parser.add_argument("--bins").help("build all binaries").default_value(false).implicit_value(true);
+    build.parser.add_argument("--benches").help("build all benches").default_value(false).implicit_value(true);
 
     // clean
     auto& clean = commands.emplace_back("clean", common, [](const ArgumentParser&) { return cmd::run_clean({}); });
@@ -209,6 +213,21 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
     test.parser.add_argument("testname")
         .help("if specified, only run tests containing this string in their names")
         .nargs(0, 1);
+
+    // bench
+    auto& bench = commands.emplace_back("bench", common, [](const ArgumentParser& cmd) {
+        return cmd::run_bench({
+            .profile = parse_profile(cmd.get("--profile")),
+            .target = cmd.present("benchname"),
+        });
+    });
+
+    bench.parser.add_description("run benches");
+    bench.parser.add_argument("--profile")
+        .help("build with specific profile")
+        .metavar("profile")
+        .default_value(std::string { kProfileRelease });
+    bench.parser.add_argument("benchname").help("if specified, only run bench with specified name").nargs(0, 1);
 
     // init
     auto& init = commands.emplace_back("init", common, [](const ArgumentParser& cmd) {

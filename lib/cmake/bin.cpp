@@ -53,5 +53,7 @@ void CmakeBin::build(std::ostream& out) const
             << "\n";
     }
 
-    out << "\n" << fmt::format("install(TARGETS {})\n", mDesc.name);
+    if (mDesc.need_install) {
+        out << "\n" << fmt::format("install(TARGETS {})\n", mDesc.name);
+    }
 }

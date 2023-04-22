@@ -27,6 +27,8 @@ private:
 
     void add_examples_();
 
+    void add_benches_();
+
     void add_test_sources_();
 
     void emit_footer_();
@@ -46,6 +48,7 @@ private:
     bool mHasTests = false;
     std::set<std::string> mBinaryTargets;
     std::set<std::string> mExampleTargets;
+    std::set<std::string> mBenchTargets;
 };
 
 }
