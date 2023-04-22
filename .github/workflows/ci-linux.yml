@@ -7,12 +7,12 @@ on:
     branches: [ main ]
 
 concurrency:
-  group: ${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
-    if: "!contains(github.event.pull_request.title, 'skip-ci')"
+    if: ${{!contains(github.event.pull_request.title, 'skip-ci') && !contains(github.event.head_commit.message, 'skip-ci')}}
     strategy:
       matrix:
         build_type: [ Debug, Release ]
@@ -79,6 +79,7 @@ jobs:
       run: |
         mergebase=$(git merge-base --fork-point origin/${{github.event.pull_request.base.ref}})
         cppship fmt
+        cppship fmt -a
         cppship fmt -c ${mergebase}
         cppship lint -c ${mergebase}
         cppship clean
