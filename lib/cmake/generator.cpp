@@ -52,6 +52,7 @@ std::string CmakeGenerator::build() &&
 
     add_lib_sources_();
     add_app_sources_();
+    add_benches_();
     add_examples_();
 
     add_test_sources_();
@@ -139,6 +140,7 @@ void CmakeGenerator::add_app_sources_()
             .lib = mHasLib ? std::optional<std::string> { mName } : std::nullopt,
             .deps = mDeps,
             .definitions = mManifest.definitions(),
+            .need_install = true,
         });
 
         gen.build(mOut);
@@ -162,10 +164,32 @@ void CmakeGenerator::add_app_sources_()
         .lib = mHasLib ? std::optional<std::string> { mName } : std::nullopt,
         .deps = mDeps,
         .definitions = definitions,
+        .need_install = true,
     });
 
     gen.build(mOut);
     mBinaryTargets.emplace(fmt::format("{}_bin", mName));
+}
+
+void CmakeGenerator::add_benches_()
+{
+    const auto root = get_project_root();
+    const auto benches = list_sources(root / kBenchesPath);
+
+    for (const auto& bin : benches) {
+        const auto target = fmt::format("{}_bench", bin.stem().string());
+
+        cmake::CmakeBin gen({
+            .name = target,
+            .sources = { bin },
+            .lib = mHasLib ? std::optional<std::string> { mName } : std::nullopt,
+            .deps = mDeps,
+            .definitions = mManifest.definitions(),
+        });
+
+        gen.build(mOut);
+        mBenchTargets.emplace(target);
+    }
 }
 
 void CmakeGenerator::add_examples_()
@@ -252,6 +276,8 @@ void CmakeGenerator::emit_footer_()
                 "add_custom_target({} DEPENDS {})\n", cmake::kCppshipGroupBinaries, boost::join(mBinaryTargets, " "))
          << fmt::format(
                 "add_custom_target({} DEPENDS {})\n", cmake::kCppshipGroupExamples, boost::join(mExampleTargets, " "))
+         << fmt::format(
+                "add_custom_target({} DEPENDS {})\n", cmake::kCppshipGroupBenches, boost::join(mBenchTargets, " "))
          << fmt::format(
                 "add_custom_target({} DEPENDS {})\n", cmake::kCppshipGroupTests, mHasTests ? "${test_targets}" : "");
 

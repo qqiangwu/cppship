@@ -1,5 +1,6 @@
 #pragma once
 
+#include "cppship/cmd/bench.h"
 #include "cppship/cmd/build.h"
 #include "cppship/cmd/clean.h"
 #include "cppship/cmd/fmt.h"

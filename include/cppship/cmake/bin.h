@@ -18,6 +18,7 @@ struct BinDesc {
     std::optional<std::string> lib;
     std::vector<Dep> deps;
     std::vector<std::string> definitions;
+    bool need_install = false;
 };
 
 class CmakeBin {
