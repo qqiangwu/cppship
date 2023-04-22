@@ -75,7 +75,7 @@ jobs:
         cppship test --profile ${{ matrix.build_type }}
 
     - name: Lint and format
-      if: matrix.build_type == 'Release' && matrix.compiler.cxx == 'clang++-14'
+      if: matrix.build_type == 'Release' && matrix.compiler.cxx == 'clang++-14' && github.event_name == 'pull_request'
       run: |
         mergebase=$(git merge-base --fork-point origin/${{github.event.pull_request.base.ref}})
         cppship fmt
