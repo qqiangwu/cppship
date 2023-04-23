@@ -160,3 +160,34 @@ add_executable(test a.cpp)
 install(TARGETS test)
 )");
 }
+
+TEST(bin, RuntimeDir)
+{
+    CmakeBin bin({ .name = "test", .sources = { "a.cpp" }, .runtime_dir = "examples" });
+
+    std::ostringstream oss;
+    bin.build(oss);
+
+    EXPECT_EQ(oss.str(), R"(
+# BIN
+add_executable(test a.cpp)
+
+set_target_properties(test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/examples")
+)");
+}
+
+TEST(bin, RuntimeDirAndName)
+{
+    CmakeBin bin({ .name = "test", .name_alias = "xxx", .sources = { "a.cpp" }, .runtime_dir = "examples" });
+
+    std::ostringstream oss;
+    bin.build(oss);
+
+    EXPECT_EQ(oss.str(), R"(
+# BIN
+add_executable(test a.cpp)
+
+set_target_properties(test PROPERTIES OUTPUT_NAME "xxx")
+set_target_properties(test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/examples")
+)");
+}

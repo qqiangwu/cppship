@@ -47,10 +47,19 @@ void CmakeBin::build(std::ostream& out) const
         out << fmt::format("\ntarget_compile_definitions({} PRIVATE {})\n", mDesc.name, boost::join(defs, " "));
     }
 
-    if (mDesc.name_alias) {
-        out << "\n"
-            << fmt::format(R"(set_target_properties({} PROPERTIES OUTPUT_NAME "{}"))", mDesc.name, *mDesc.name_alias)
-            << "\n";
+    if (mDesc.name_alias || mDesc.runtime_dir) {
+        out << "\n";
+
+        if (const auto& name_alias = mDesc.name_alias) {
+            out << fmt::format(R"(set_target_properties({} PROPERTIES OUTPUT_NAME "{}"))", mDesc.name, *name_alias)
+                << '\n';
+        }
+        if (const auto& runtime_dir = mDesc.runtime_dir) {
+            out << fmt::format(
+                R"(set_target_properties({} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${{CMAKE_BINARY_DIR}}/{}"))",
+                mDesc.name, *runtime_dir)
+                << '\n';
+        }
     }
 
     if (mDesc.need_install) {
