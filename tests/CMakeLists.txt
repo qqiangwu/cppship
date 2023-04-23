@@ -9,7 +9,7 @@ foreach(file ${srcs})
 
     add_executable(${test_target} ${file})
 
-    target_link_libraries(${test_target} PRIVATE ${PROJECT_NAME})
+    target_link_libraries(${test_target} PRIVATE ${PROJECT_NAME}_lib)
     target_link_libraries(${test_target} PRIVATE GTest::gtest_main)
 
     add_test(${test_target} ${test_target})

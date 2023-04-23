@@ -44,8 +44,8 @@ private:
 
     std::string_view mName = mManifest.name();
 
-    bool mHasLib = false;
     bool mHasTests = false;
+    std::optional<std::string> mLib;
     std::set<std::string> mBinaryTargets;
     std::set<std::string> mExampleTargets;
     std::set<std::string> mBenchTargets;

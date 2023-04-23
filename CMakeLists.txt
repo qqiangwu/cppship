@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(cppship VERSION 0.2.0)
+project(cppship VERSION 0.2.1)
 
 include(CTest)
 enable_testing()

@@ -117,10 +117,9 @@ void CmakeGenerator::add_lib_sources_()
     });
     lib.build(mOut);
 
-    mHasLib = true;
-
-    // view lib as a target to easy `cppship build` for header only lib
-    mBinaryTargets.emplace(mName);
+    // view lib as a binary target to easy `cppship build` for header only lib
+    mLib.emplace(lib.target());
+    mBinaryTargets.emplace(*mLib);
 }
 
 void CmakeGenerator::add_app_sources_()
@@ -137,7 +136,7 @@ void CmakeGenerator::add_app_sources_()
         cmake::CmakeBin gen({
             .name = bin.stem().string(),
             .sources = { bin },
-            .lib = mHasLib ? std::optional<std::string> { mName } : std::nullopt,
+            .lib = mLib,
             .deps = mDeps,
             .definitions = mManifest.definitions(),
             .need_install = true,
@@ -156,19 +155,19 @@ void CmakeGenerator::add_app_sources_()
         R"({}_VERSION="${{PROJECT_VERSION}}")", boost::to_upper_copy(std::string { mName })) };
     ranges::push_back(definitions, mManifest.definitions());
 
+    const std::string name { mName };
     cmake::CmakeBin gen({
-        .name = fmt::format("{}_bin", mName),
-        .name_alias = std::string { mName },
+        .name = name,
         .sources = sources | ranges::to<std::vector<fs::path>>(),
         .include_dir = root / kSrcPath,
-        .lib = mHasLib ? std::optional<std::string> { mName } : std::nullopt,
+        .lib = mLib,
         .deps = mDeps,
         .definitions = definitions,
         .need_install = true,
     });
 
     gen.build(mOut);
-    mBinaryTargets.emplace(fmt::format("{}_bin", mName));
+    mBinaryTargets.emplace(mName);
 }
 
 void CmakeGenerator::add_benches_()
@@ -195,7 +194,7 @@ find_package(benchmark REQUIRED)
         cmake::CmakeBin gen({
             .name = target,
             .sources = { bin },
-            .lib = mHasLib ? std::optional<std::string> { mName } : std::nullopt,
+            .lib = mLib,
             .deps = deps,
             .definitions = mManifest.definitions(),
         });
@@ -218,7 +217,7 @@ void CmakeGenerator::add_examples_()
             .name = target,
             .name_alias = name,
             .sources = { bin },
-            .lib = mHasLib ? std::optional<std::string> { mName } : std::nullopt,
+            .lib = mLib,
             .deps = mDeps,
             .definitions = mManifest.definitions(),
             .runtime_dir = "examples",
@@ -255,7 +254,7 @@ foreach(file ${srcs})
     add_executable(${test_target} "${CMAKE_SOURCE_DIR}/tests/${file}")
     list(APPEND test_targets ${test_target})
 
-    target_link_libraries(${test_target} PRIVATE ${PROJECT_NAME})
+    target_link_libraries(${test_target} PRIVATE ${PROJECT_NAME}_lib)
     target_link_libraries(${test_target} PRIVATE GTest::gtest_main)
 
     add_test(${test_target} ${test_target})
@@ -271,16 +270,16 @@ foreach(file ${inner_tests})
     add_executable(${test_target} "${CMAKE_SOURCE_DIR}/lib/${file}")
     list(APPEND test_targets ${test_target})
 
-    target_link_libraries(${test_target} PRIVATE ${PROJECT_NAME})
+    target_link_libraries(${test_target} PRIVATE ${PROJECT_NAME}_lib)
     target_link_libraries(${test_target} PRIVATE GTest::gtest_main)
 
     add_test(${test_target} ${test_target})
 endforeach()
 )";
 
-    if (!mHasLib) {
+    if (!mLib) {
         // FIXME: too hack here
-        boost::replace_all(content, "target_link_libraries(${test_target} PRIVATE ${PROJECT_NAME})\n", "");
+        boost::replace_all(content, "target_link_libraries(${test_target} PRIVATE ${PROJECT_NAME}_lib)\n", "");
     }
 
     mOut << content;

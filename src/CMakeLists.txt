@@ -1,7 +1,6 @@
-add_executable(cppship_bin main.cpp)
+add_executable(cppship main.cpp)
 
-target_compile_definitions(cppship_bin PRIVATE CPPSHIP_VERSION="${PROJECT_VERSION}")
-target_link_libraries(cppship_bin cppship)
-set_target_properties(cppship_bin PROPERTIES OUTPUT_NAME "cppship")
+target_compile_definitions(cppship PRIVATE CPPSHIP_VERSION="${PROJECT_VERSION}")
+target_link_libraries(cppship cppship_lib)
 
-install(TARGETS cppship_bin)
+install(TARGETS cppship)
