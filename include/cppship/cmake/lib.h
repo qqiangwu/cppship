@@ -26,6 +26,8 @@ public:
 
     void build(std::ostream& out) const;
 
+    std::string target() const { return fmt::format("{}_lib", mName); }
+
 private:
     std::string mName;
     fs::path mIncludeDir;

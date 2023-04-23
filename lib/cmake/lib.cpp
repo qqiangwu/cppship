@@ -28,24 +28,28 @@ CmakeLib::CmakeLib(LibDesc desc)
 
 void CmakeLib::build(std::ostream& out) const
 {
+    const auto lib_name = target();
+
     out << "\n# LIB\n";
     if (is_interface()) {
-        out << fmt::format("add_library({} INTERFACE)\n", mName);
+        out << fmt::format("add_library({} INTERFACE)\n", lib_name);
     } else {
-        out << fmt::format("add_library({} {})\n", mName, boost::join(mSources, "\n"));
+        out << fmt::format("add_library({} {})\n", lib_name, boost::join(mSources, "\n"));
     }
+    out << fmt::format(R"(set_target_properties({} PROPERTIES OUTPUT_NAME "{}"))", lib_name, mName) << '\n';
 
     const std::string_view lib_type = is_interface() ? "INTERFACE" : "PUBLIC";
     out << "\n"
-        << fmt::format("target_include_directories({} {} ${{CMAKE_SOURCE_DIR}}/{})\n", mName, lib_type, kLibPath)
-        << fmt::format("target_include_directories({} {} ${{CMAKE_SOURCE_DIR}}/{})\n", mName, lib_type, kIncludePath)
+        << fmt::format("target_include_directories({} {} ${{CMAKE_SOURCE_DIR}}/{})\n", lib_name, lib_type, kLibPath)
+        << fmt::format("target_include_directories({} {} ${{CMAKE_SOURCE_DIR}}/{})\n", lib_name, lib_type, kIncludePath)
         << std::endl;
 
     for (const auto& dep : mDeps) {
-        out << fmt::format("target_link_libraries({} {} {})\n", mName, lib_type, boost::join(dep.cmake_targets, " "));
+        out << fmt::format(
+            "target_link_libraries({} {} {})\n", lib_name, lib_type, boost::join(dep.cmake_targets, " "));
     }
 
     if (const auto& defs = mDefinitions; !defs.empty()) {
-        out << fmt::format("\ntarget_compile_definitions({} {} {})\n", mName, lib_type, boost::join(defs, " "));
+        out << fmt::format("\ntarget_compile_definitions({} {} {})\n", lib_name, lib_type, boost::join(defs, " "));
     }
 }
