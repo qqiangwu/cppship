@@ -19,6 +19,7 @@ struct BinDesc {
     std::vector<Dep> deps;
     std::vector<std::string> definitions;
     bool need_install = false;
+    std::optional<std::string> runtime_dir;
 };
 
 class CmakeBin {

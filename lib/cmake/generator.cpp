@@ -211,16 +211,21 @@ void CmakeGenerator::add_examples_()
     const auto examples = list_sources(root / kExamplesPath);
 
     for (const auto& bin : examples) {
+        const auto name = bin.stem().string();
+        const auto target = fmt::format("example_{}", name);
+
         cmake::CmakeBin gen({
-            .name = bin.stem().string(),
+            .name = target,
+            .name_alias = name,
             .sources = { bin },
             .lib = mHasLib ? std::optional<std::string> { mName } : std::nullopt,
             .deps = mDeps,
             .definitions = mManifest.definitions(),
+            .runtime_dir = "examples",
         });
 
         gen.build(mOut);
-        mExampleTargets.emplace(bin.stem().string());
+        mExampleTargets.emplace(target);
     }
 }
 
