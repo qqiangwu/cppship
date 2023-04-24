@@ -50,4 +50,8 @@ public:
     using Error::Error;
 };
 
+class LayoutError : public Error {
+    using Error::Error;
+};
+
 }

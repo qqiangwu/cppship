@@ -69,6 +69,22 @@ std::set<fs::path> cppship::list_sources(const fs::path& source_dir)
     return files;
 }
 
+std::set<fs::path> cppship::list_cpp_files(const fs::path& dir)
+{
+    if (!fs::exists(dir)) {
+        return {};
+    }
+
+    std::set<fs::path> files;
+    for (const fs::directory_entry& entry : fs::directory_iterator { dir }) {
+        if (entry.path().extension() == ".cpp") {
+            files.insert(entry.path());
+        }
+    }
+
+    return files;
+}
+
 std::set<fs::path> cppship::list_all_files()
 {
     const auto root_dir = get_project_root();
