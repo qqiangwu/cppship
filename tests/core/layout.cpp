@@ -11,7 +11,6 @@
 #include <range/v3/view/transform.hpp>
 
 using namespace cppship;
-using namespace cppship::layout;
 using namespace ranges::views;
 
 namespace {

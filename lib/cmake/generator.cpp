@@ -2,10 +2,10 @@
 #include "cppship/cmake/bin.h"
 #include "cppship/cmake/group.h"
 #include "cppship/cmake/lib.h"
+#include "cppship/cmake/naming.h"
 #include "cppship/core/manifest.h"
 #include "cppship/exception.h"
 #include "cppship/util/log.h"
-#include "cppship/util/repo.h"
 
 #include <boost/algorithm/string.hpp>
 #include <fmt/core.h>
@@ -17,31 +17,41 @@
 using namespace ranges::views;
 
 using namespace cppship;
+using namespace cppship::cmake;
 
-CmakeGenerator::CmakeGenerator(const Manifest& manifest, const ResolvedDependencies& deps)
-    : mManifest(manifest)
+CmakeGenerator::CmakeGenerator(
+    gsl::not_null<const Layout*> layout, const Manifest& manifest, const ResolvedDependencies& deps)
+    : mLayout(layout)
+    , mManifest(manifest)
 {
     for (const auto& dep : manifest.dependencies()) {
         const auto& resolved_dep = deps.at(dep.package);
 
         if (dep.components.empty()) {
-            mDeps.push_back(
-                { .cmake_package = resolved_dep.cmake_package, .cmake_targets = { resolved_dep.cmake_target } });
-        } else {
-            std::set<std::string> resolved_components(resolved_dep.components.begin(), resolved_dep.components.end());
-            std::vector<std::string> targets_required;
+            mDeps.push_back({
+                .cmake_package = resolved_dep.cmake_package,
+                .cmake_targets = { resolved_dep.cmake_target },
+            });
 
-            for (const auto& declared_component : dep.components) {
-                auto component = fmt::format("{}::{}", resolved_dep.cmake_package, declared_component);
-                if (!resolved_components.contains(component)) {
-                    throw Error { fmt::format("invalid component {} in manifest", declared_component) };
-                }
+            continue;
+        }
 
-                targets_required.push_back(std::move(component));
+        std::set<std::string> resolved_components(resolved_dep.components.begin(), resolved_dep.components.end());
+        std::vector<std::string> targets_required;
+
+        for (const auto& declared_component : dep.components) {
+            auto component = fmt::format("{}::{}", resolved_dep.cmake_package, declared_component);
+            if (!resolved_components.contains(component)) {
+                throw Error { fmt::format("invalid component {} in manifest", declared_component) };
             }
 
-            mDeps.push_back({ .cmake_package = resolved_dep.cmake_package, .cmake_targets = targets_required });
+            targets_required.push_back(std::move(component));
         }
+
+        mDeps.push_back({
+            .cmake_package = resolved_dep.cmake_package,
+            .cmake_targets = targets_required,
+        });
     }
 }
 
@@ -97,21 +107,15 @@ void CmakeGenerator::emit_package_finders_()
 
 void CmakeGenerator::add_lib_sources_()
 {
-    const auto root = get_project_root();
-    const auto include_dir = root / kIncludePath;
-    const auto source_dir = root / kLibPath;
-    if (!fs::exists(include_dir)) {
-        if (fs::exists(source_dir)) {
-            warn("lib without a include dir(eg. {}) is not a valid profile", include_dir.string());
-        }
-
+    const auto target = mLayout->lib();
+    if (!target) {
         return;
     }
 
     cmake::CmakeLib lib({
-        .name = std::string { mName },
-        .include_dir = include_dir,
-        .source_dir = fs::exists(source_dir) ? std::optional { source_dir } : std::nullopt,
+        .name = target->name,
+        .include_dirs = target->includes,
+        .sources = target->sources,
         .deps = mDeps,
         .definitions = mManifest.definitions(),
     });
@@ -124,57 +128,33 @@ void CmakeGenerator::add_lib_sources_()
 
 void CmakeGenerator::add_app_sources_()
 {
-    const auto root = get_project_root();
-    const auto bins = list_sources(root / kSrcPath / kBinPath);
-
-    auto sources = list_sources(root / kSrcPath);
-    if (sources.empty()) {
+    if (mLayout->binaries().empty()) {
         return;
     }
 
-    for (const auto& bin : bins) {
+    std::vector<std::string> definitions {
+        fmt::format(R"({}_VERSION="${{PROJECT_VERSION}}")", boost::to_upper_copy(std::string { mName })),
+    };
+    ranges::push_back(definitions, mManifest.definitions());
+
+    for (const auto& bin : mLayout->binaries()) {
         cmake::CmakeBin gen({
-            .name = bin.stem().string(),
-            .sources = { bin },
+            .name = bin.name,
+            .sources = bin.sources,
             .lib = mLib,
             .deps = mDeps,
-            .definitions = mManifest.definitions(),
+            .definitions = definitions,
             .need_install = true,
         });
 
         gen.build(mOut);
-        mBinaryTargets.emplace(bin.stem().string());
+        mBinaryTargets.emplace(bin.name);
     }
-
-    std::erase_if(sources, [&bins](const auto& path) { return bins.contains(path); });
-    if (sources.empty()) {
-        return;
-    }
-
-    std::vector<std::string> definitions { fmt::format(
-        R"({}_VERSION="${{PROJECT_VERSION}}")", boost::to_upper_copy(std::string { mName })) };
-    ranges::push_back(definitions, mManifest.definitions());
-
-    const std::string name { mName };
-    cmake::CmakeBin gen({
-        .name = name,
-        .sources = sources | ranges::to<std::vector<fs::path>>(),
-        .include_dir = root / kSrcPath,
-        .lib = mLib,
-        .deps = mDeps,
-        .definitions = definitions,
-        .need_install = true,
-    });
-
-    gen.build(mOut);
-    mBinaryTargets.emplace(mName);
 }
 
 void CmakeGenerator::add_benches_()
 {
-    const auto root = get_project_root();
-    const auto benches = list_sources(root / kBenchesPath);
-
+    const auto& benches = mLayout->benches();
     if (benches.empty()) {
         return;
     }
@@ -183,17 +163,18 @@ void CmakeGenerator::add_benches_()
 find_package(benchmark REQUIRED)
 )";
 
+    NameTargetMapper mapper;
     auto deps = mDeps;
     deps.push_back({
         .cmake_package = "benchmark",
         .cmake_targets = { "benchmark::benchmark" },
     });
     for (const auto& bin : benches) {
-        const auto target = fmt::format("{}_bench", bin.stem().string());
+        const auto target = mapper.bench(bin.name);
 
         cmake::CmakeBin gen({
             .name = target,
-            .sources = { bin },
+            .sources = bin.sources,
             .lib = mLib,
             .deps = deps,
             .definitions = mManifest.definitions(),
@@ -206,17 +187,19 @@ find_package(benchmark REQUIRED)
 
 void CmakeGenerator::add_examples_()
 {
-    const auto root = get_project_root();
-    const auto examples = list_sources(root / kExamplesPath);
+    const auto& examples = mLayout->examples();
+    if (examples.empty()) {
+        return;
+    }
 
+    NameTargetMapper mapper;
     for (const auto& bin : examples) {
-        const auto name = bin.stem().string();
-        const auto target = fmt::format("example_{}", name);
+        const auto target = mapper.example(bin.name);
 
         cmake::CmakeBin gen({
             .name = target,
-            .name_alias = name,
-            .sources = { bin },
+            .name_alias = bin.name,
+            .sources = bin.sources,
             .lib = mLib,
             .deps = mDeps,
             .definitions = mManifest.definitions(),
@@ -230,60 +213,32 @@ void CmakeGenerator::add_examples_()
 
 void CmakeGenerator::add_test_sources_()
 {
-    const auto sources = list_sources_(kTestsPath);
-    const auto has_inner_tests = ranges::any_of(list_sources(kLibPath), [](const fs::path& path) {
-        const std::string stem = path.filename().string();
-        return stem.ends_with(kInnerTestSuffix);
-    });
-    if (sources.empty() && !has_inner_tests) {
+    const auto& tests = mLayout->tests();
+    if (tests.empty()) {
         return;
     }
 
-    std::string content = R"(
+    mOut << R"(
 # Tests
 find_package(GTest REQUIRED)
-
-file(GLOB_RECURSE srcs RELATIVE "${CMAKE_SOURCE_DIR}/tests" "${CMAKE_SOURCE_DIR}/tests/**.cpp")
-set(test_targets "")
-
-foreach(file ${srcs})
-    # a/b/c.cpp => a_b_c_test
-    string(REPLACE "/" "_" test_target ${file})
-    string(REPLACE ".cpp" "_test" test_target ${test_target})
-
-    add_executable(${test_target} "${CMAKE_SOURCE_DIR}/tests/${file}")
-    list(APPEND test_targets ${test_target})
-
-    target_link_libraries(${test_target} PRIVATE ${PROJECT_NAME}_lib)
-    target_link_libraries(${test_target} PRIVATE GTest::gtest_main)
-
-    add_test(${test_target} ${test_target})
-endforeach()
-
-file(GLOB_RECURSE inner_tests RELATIVE "${CMAKE_SOURCE_DIR}/lib/" "${CMAKE_SOURCE_DIR}/lib/**_test.cpp")
-
-foreach(file ${inner_tests})
-    # a/b/c_test.cpp => a_b_c_test
-    string(REPLACE "/" "_" test_target ${file})
-    string(REPLACE ".cpp" "" test_target ${test_target})
-
-    add_executable(${test_target} "${CMAKE_SOURCE_DIR}/lib/${file}")
-    list(APPEND test_targets ${test_target})
-
-    target_link_libraries(${test_target} PRIVATE ${PROJECT_NAME}_lib)
-    target_link_libraries(${test_target} PRIVATE GTest::gtest_main)
-
-    add_test(${test_target} ${test_target})
-endforeach()
 )";
 
-    if (!mLib) {
-        // FIXME: too hack here
-        boost::replace_all(content, "target_link_libraries(${test_target} PRIVATE ${PROJECT_NAME}_lib)\n", "");
-    }
+    NameTargetMapper mapper;
+    for (const auto& test : tests) {
+        const auto target = mapper.test(test.name);
 
-    mOut << content;
-    mHasTests = true;
+        mOut << '\n'
+             << fmt::format("add_executable({} {})\n", target, test.sources.begin()->string())
+             << fmt::format("target_link_libraries({} PRIVATE GTest::gtest_main)\n", target);
+
+        if (mLib) {
+            mOut << fmt::format("target_link_libraries({} PRIVATE {})\n", target, *mLib);
+        }
+
+        mOut << fmt::format("add_test({} {})\n", target, target);
+
+        mTestTargets.emplace(target);
+    }
 }
 
 void CmakeGenerator::emit_footer_()
@@ -296,17 +251,11 @@ void CmakeGenerator::emit_footer_()
          << fmt::format(
                 "add_custom_target({} DEPENDS {})\n", cmake::kCppshipGroupBenches, boost::join(mBenchTargets, " "))
          << fmt::format(
-                "add_custom_target({} DEPENDS {})\n", cmake::kCppshipGroupTests, mHasTests ? "${test_targets}" : "");
+                "add_custom_target({} DEPENDS {})\n", cmake::kCppshipGroupTests, boost::join(mTestTargets, " "));
 
     mOut << "\n# Footer\n"
          << R"(set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
 )";
-}
-
-std::set<std::string> CmakeGenerator::list_sources_(std::string_view dir)
-{
-    auto sources = list_sources(dir);
-    return sources | transform([](const auto& path) { return path.string(); }) | ranges::to<std::set<std::string>>();
 }

@@ -10,7 +10,6 @@
 #include <range/v3/view.hpp>
 
 using namespace cppship;
-using namespace cppship::layout;
 using namespace ranges::views;
 
 namespace {

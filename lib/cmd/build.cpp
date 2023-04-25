@@ -31,10 +31,6 @@ namespace rng = ranges::views;
 int cmd::run_build(const BuildOptions& options)
 {
     BuildContext ctx(options.profile);
-    if (!fs::exists(ctx.build_dir)) {
-        fs::create_directories(ctx.build_dir);
-    }
-
     ScopedCurrentDir guard(ctx.root);
     conan_detect_profile(ctx);
     conan_setup(ctx);
@@ -183,21 +179,23 @@ void cmd::cmake_setup(const BuildContext& ctx)
 {
     const auto& inventory_file = ctx.inventory_file;
 
-    const auto all_files = list_all_files();
-    const auto files = all_files | rng::filter([](const auto& file) { return file.extension() == ".cpp"; })
-        | rng::transform([](const auto& file) { return file.string(); }) | ranges::to<std::set<std::string>>();
+    const auto all_files = ctx.layout.all_files();
+    const auto files = all_files | rng::transform([](const auto& file) { return file.string(); })
+        | ranges::to<std::set<std::string>>();
     if (fs::exists(inventory_file)) {
         const auto saved_inventory = toml::parse(inventory_file);
         const auto saved = saved_inventory.at("files").as_array()
             | rng::transform([](const auto& val) { return val.as_string().str; });
-        if (ranges::equal(files, saved) && !ctx.is_expired(inventory_file)) {
+        const bool has_lib = saved_inventory.at("lib").as_boolean();
+        if (ranges::equal(files, saved) && !ctx.is_expired(inventory_file) && has_lib == ctx.layout.lib().has_value()) {
             debug("files not changed, skip");
             return;
         }
     }
 
     status("config", "generate cmake files");
-    CmakeGenerator gen(ctx.manifest, toml::get<ResolvedDependencies>(toml::parse(ctx.dependency_file)));
+    ResolvedDependencies deps = toml::get<ResolvedDependencies>(toml::parse(ctx.dependency_file));
+    CmakeGenerator gen(&ctx.layout, ctx.manifest, deps);
     write(ctx.build_dir / "CMakeLists.txt", std::move(gen).build());
 
     const std::string cmd = fmt::format(
@@ -214,7 +212,10 @@ void cmd::cmake_setup(const BuildContext& ctx)
         fs::rename(compile_db, ctx.build_dir / "compile_commands.json");
     }
 
-    write(inventory_file, toml::format(toml::value({ { "files", files } })));
+    toml::value value;
+    value["files"] = files;
+    value["lib"] = ctx.layout.lib().has_value();
+    write(inventory_file, toml::format(value));
 }
 
 namespace {
