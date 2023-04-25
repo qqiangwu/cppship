@@ -4,15 +4,18 @@
 #include <sstream>
 #include <string>
 
+#include <gsl/pointers>
+
 #include "cppship/cmake/dep.h"
 #include "cppship/core/dependency.h"
+#include "cppship/core/layout.h"
 #include "cppship/core/manifest.h"
 
 namespace cppship {
 
 class CmakeGenerator {
 public:
-    CmakeGenerator(const Manifest& manifest, const ResolvedDependencies& deps);
+    CmakeGenerator(gsl::not_null<const Layout*> layout, const Manifest& manifest, const ResolvedDependencies& deps);
 
     std::string build() &&;
 
@@ -39,16 +42,17 @@ private:
 private:
     std::ostringstream mOut;
 
+    gsl::not_null<const Layout*> mLayout;
     Manifest mManifest;
     std::vector<cmake::Dep> mDeps;
 
     std::string_view mName = mManifest.name();
 
-    bool mHasTests = false;
     std::optional<std::string> mLib;
     std::set<std::string> mBinaryTargets;
     std::set<std::string> mExampleTargets;
     std::set<std::string> mBenchTargets;
+    std::set<std::string> mTestTargets;
 };
 
 }

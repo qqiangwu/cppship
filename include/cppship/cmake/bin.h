@@ -13,7 +13,7 @@ namespace cppship::cmake {
 struct BinDesc {
     std::string name;
     std::optional<std::string> name_alias;
-    std::vector<fs::path> sources;
+    std::set<fs::path> sources;
     std::optional<std::string> include_dir;
     std::optional<std::string> lib;
     std::vector<Dep> deps;

@@ -6,7 +6,7 @@
 #include <set>
 #include <vector>
 
-namespace cppship::layout {
+namespace cppship {
 
 struct Target {
     std::string name;

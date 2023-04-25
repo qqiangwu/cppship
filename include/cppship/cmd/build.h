@@ -7,6 +7,7 @@
 #include <boost/algorithm/string/case_conv.hpp>
 #include <gsl/narrow>
 
+#include "cppship/core/layout.h"
 #include "cppship/core/manifest.h"
 #include "cppship/core/profile.h"
 #include "cppship/util/fs.h"
@@ -38,10 +39,14 @@ struct BuildContext {
     fs::path dependency_file = profile_dir / "dependency.toml";
 
     Manifest manifest { metafile };
+    Layout layout { root, manifest.name() };
 
     explicit BuildContext(Profile profile_)
         : profile(to_string(profile_))
     {
+        if (!fs::exists(build_dir)) {
+            fs::create_directories(build_dir);
+        }
     }
 
     [[nodiscard]] bool is_expired(const fs::path& path) const

@@ -5,6 +5,7 @@
 #include <gsl/narrow>
 #include <spdlog/spdlog.h>
 
+#include "cppship/cmake/naming.h"
 #include "cppship/cmd/build.h"
 #include "cppship/cmd/run.h"
 #include "cppship/core/manifest.h"
@@ -23,22 +24,15 @@ void validate_options(const cmd::RunOptions& options)
     }
 }
 
-void validate_bin(const fs::path& root, const std::string_view name, const cmd::RunOptions& opt)
+void validate_target(const cmd::BuildContext& ctx, const cmd::RunOptions& opt)
 {
     if (const auto& bin = opt.bin) {
-        if (*bin == name) {
-            if (!fs::exists(root / kSrcPath / "main.cpp")) {
-                throw Error { fmt::format("binary src/main.cpp is not found") };
-            }
-            return;
-        }
-
-        if (!fs::exists(root / kSrcPath / "bin" / fmt::format("{}.cpp", *bin))) {
-            throw Error { fmt::format("binary src/bin/{}.cpp not found", *bin) };
+        if (!ctx.layout.binary(*bin)) {
+            throw Error { fmt::format("binary `{}` not found", *bin) };
         }
     } else if (const auto& example = opt.example) {
-        if (!fs::exists(root / kExamplesPath / fmt::format("{}.cpp", *example))) {
-            throw Error { fmt::format("example examples/{}.cpp not found", *example) };
+        if (!ctx.layout.example(*example)) {
+            throw Error { fmt::format("example `{}` not found", *example) };
         }
     }
 }
@@ -64,10 +58,11 @@ int cmd::run_run(const RunOptions& options)
     BuildContext ctx(options.profile);
     Manifest manifest(ctx.metafile);
 
-    validate_bin(ctx.root, manifest.name(), options);
+    validate_target(ctx, options);
 
+    cmake::NameTargetMapper mapper;
     const auto bin = choose_binary(options, manifest);
-    const auto target = options.example ? fmt::format("example_{}", bin) : bin;
+    const auto target = options.example ? mapper.example(bin) : bin;
     const int result = run_build({ .profile = options.profile, .target = target });
     if (result != 0) {
         return EXIT_FAILURE;

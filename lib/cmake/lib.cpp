@@ -1,5 +1,4 @@
 #include "cppship/cmake/lib.h"
-#include "cppship/util/repo.h"
 
 #include <boost/algorithm/string/join.hpp>
 #include <fmt/core.h>
@@ -11,19 +10,22 @@ using namespace cppship;
 using namespace cppship::cmake;
 using namespace ranges::views;
 
+namespace {
+
+std::set<std::string> to_strings(const std::set<fs::path>& paths)
+{
+    return paths | transform([](const fs::path& path) { return path.string(); }) | ranges::to<std::set<std::string>>();
+}
+
+}
+
 CmakeLib::CmakeLib(LibDesc desc)
     : mName(std::move(desc.name))
-    , mIncludeDir(std::move(desc.include_dir))
-    , mSourceDir(std::move(desc.source_dir))
+    , mIncludes(to_strings(desc.include_dirs))
+    , mSources(to_strings(desc.sources))
     , mDeps(desc.deps)
     , mDefinitions(std::move(desc.definitions))
 {
-    if (mSourceDir) {
-        auto sources = list_sources(mSourceDir.value());
-        mSources = sources | transform([](const auto& path) { return path.string(); })
-            | filter([](const std::string_view path) { return !path.ends_with(kInnerTestSuffix); })
-            | ranges::to<std::vector<std::string>>();
-    }
 }
 
 void CmakeLib::build(std::ostream& out) const
@@ -39,10 +41,15 @@ void CmakeLib::build(std::ostream& out) const
     out << fmt::format(R"(set_target_properties({} PROPERTIES OUTPUT_NAME "{}"))", lib_name, mName) << '\n';
 
     const std::string_view lib_type = is_interface() ? "INTERFACE" : "PUBLIC";
-    out << "\n"
-        << fmt::format("target_include_directories({} {} ${{CMAKE_SOURCE_DIR}}/{})\n", lib_name, lib_type, kLibPath)
-        << fmt::format("target_include_directories({} {} ${{CMAKE_SOURCE_DIR}}/{})\n", lib_name, lib_type, kIncludePath)
-        << std::endl;
+    if (!mIncludes.empty()) {
+        out << "\n";
+
+        for (const auto& dir : mIncludes) {
+            out << fmt::format("target_include_directories({} {} {})\n", lib_name, lib_type, dir);
+        }
+
+        out << "\n";
+    }
 
     for (const auto& dep : mDeps) {
         out << fmt::format(
