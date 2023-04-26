@@ -28,6 +28,8 @@ private:
 
     void add_app_sources_();
 
+    void emit_dev_package_finders_();
+
     void add_examples_();
 
     void add_benches_();
@@ -43,8 +45,13 @@ private:
     std::ostringstream mOut;
 
     gsl::not_null<const Layout*> mLayout;
+
     Manifest mManifest;
     std::vector<cmake::Dep> mDeps;
+    std::vector<cmake::Dep> mDevDeps;
+
+    // mDeps + mDevDeps
+    std::vector<cmake::Dep> mDeps4Dev;
 
     std::string_view mName = mManifest.name();
 

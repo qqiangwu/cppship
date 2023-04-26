@@ -3,9 +3,11 @@
 #include "cppship/util/fs.h"
 #include "cppship/util/io.h"
 
+#include <set>
 #include <stdexcept>
 
 #include <fmt/os.h>
+#include <range/v3/view/concat.hpp>
 #include <toml.hpp>
 
 using namespace cppship;
@@ -49,6 +51,46 @@ std::string get_option_value(const toml::value& value)
     throw Error { "dependency options' value can only be bool/int/string" };
 }
 
+std::vector<DeclaredDependency> parse_dependencis(const toml::value& manifest, const std::string& key)
+{
+    std::vector<DeclaredDependency> declared_deps;
+
+    const auto deps = toml::find_or<std::unordered_map<std::string, toml::value>>(manifest, key, {});
+    for (const auto& [name, dep] : deps) {
+        auto& pkg = declared_deps.emplace_back();
+
+        pkg.package = name;
+
+        if (dep.is_string()) {
+            pkg.version = dep.as_string();
+        } else if (dep.is_table()) {
+            pkg.version = toml::find<std::string>(dep, "version");
+            pkg.components = toml::find_or<std::vector<std::string>>(dep, "components", {});
+            for (const auto& [key, val] :
+                toml::find_or<std::unordered_map<std::string, toml::value>>(dep, "options", {})) {
+                pkg.options.emplace(key, get_option_value(val));
+            }
+        } else {
+            throw Error { fmt::format("invalid dependency {} in manifest", name) };
+        }
+    }
+
+    return declared_deps;
+}
+
+void check_dependency_dups(const std::vector<DeclaredDependency>& deps, const std::vector<DeclaredDependency>& dev_deps)
+{
+    std::set<std::string> package_seen;
+
+    for (const auto& dep : ranges::views::concat(deps, dev_deps)) {
+        if (package_seen.contains(dep.package)) {
+            throw Error { fmt::format("package {} already declared", dep.package) };
+        }
+
+        package_seen.insert(dep.package);
+    }
+}
+
 }
 
 Manifest::Manifest(const fs::path& file)
@@ -66,25 +108,10 @@ Manifest::Manifest(const fs::path& file)
         mCxxStd = get_cxx_std(package);
         mDefinitions = toml::find_or<std::vector<std::string>>(package, "definitions", {});
 
-        const auto deps = toml::find_or<std::unordered_map<std::string, toml::value>>(value, "dependencies", {});
-        for (const auto& [name, dep] : deps) {
-            auto& pkg = mDependencies.emplace_back();
+        mDependencies = parse_dependencis(value, "dependencies");
+        mDevDependencies = parse_dependencis(value, "dev-dependencies");
 
-            pkg.package = name;
-
-            if (dep.is_string()) {
-                pkg.version = dep.as_string();
-            } else if (dep.is_table()) {
-                pkg.version = toml::find<std::string>(dep, "version");
-                pkg.components = toml::find_or<std::vector<std::string>>(dep, "components", {});
-                for (const auto& [key, val] :
-                    toml::find_or<std::unordered_map<std::string, toml::value>>(dep, "options", {})) {
-                    pkg.options.emplace(key, get_option_value(val));
-                }
-            } else {
-                throw Error { fmt::format("invalid dependency {} in manifest", name) };
-            }
-        }
+        check_dependency_dups(mDependencies, mDevDependencies);
     } catch (const std::out_of_range& e) {
         throw Error { e.what() };
     } catch (const toml::exception& e) {

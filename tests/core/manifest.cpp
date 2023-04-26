@@ -82,7 +82,7 @@ version = "0.1.0"
 std = 11
 definitions = ["A", "B"]
 )");
-    EXPECT_EQ(meta.definitions().size(), 2);
+    ASSERT_EQ(meta.definitions().size(), 2);
     EXPECT_EQ(meta.definitions()[0], "A");
     EXPECT_EQ(meta.definitions()[1], "B");
 }
@@ -107,7 +107,7 @@ boost = { version = "1.81.0", components = ["headers"] }
 toml11 = "3.7.1"
 )");
 
-    EXPECT_EQ(meta.dependencies().size(), 2);
+    ASSERT_EQ(meta.dependencies().size(), 2);
 
     auto deps = meta.dependencies();
     ranges::sort(deps, std::less<> {}, &DeclaredDependency::package);
@@ -133,7 +133,7 @@ version = "0.1.0"
 boost = { version = "1.81.0", components = ["headers"], options = { without_stacktrace = true, i18backend = "icu" } }
 )");
 
-    EXPECT_EQ(meta.dependencies().size(), 1);
+    ASSERT_EQ(meta.dependencies().size(), 1);
 
     const auto& dep = meta.dependencies().front();
 
@@ -142,4 +142,76 @@ boost = { version = "1.81.0", components = ["headers"], options = { without_stac
     EXPECT_EQ(dep.components, std::vector<std::string> { "headers" });
     EXPECT_EQ(dep.options.at("without_stacktrace"), "True");
     EXPECT_EQ(dep.options.at("i18backend"), "\"icu\"");
+}
+
+TEST(manifest, DevDependencies)
+{
+    auto meta = mock_manifest(R"([package]
+name = "abc"
+version = "0.1.0"
+
+[dependencies]
+toml11 = "3.7.1"
+)");
+
+    ASSERT_EQ(meta.dependencies().size(), 1);
+    ASSERT_EQ(meta.dev_dependencies().size(), 0);
+
+    meta = mock_manifest(R"([package]
+name = "abc"
+version = "0.1.0"
+
+[dependencies]
+toml11 = "3.7.1"
+
+[dev-dependencies]
+boost = "1.81.0"
+fmt = "9.1.0"
+)");
+    ASSERT_EQ(meta.dependencies().size(), 1);
+    ASSERT_EQ(meta.dev_dependencies().size(), 2);
+
+    auto deps = meta.dev_dependencies();
+    ranges::sort(deps, std::less<> {}, &DeclaredDependency::package);
+
+    EXPECT_EQ(deps[0].package, "boost");
+    EXPECT_EQ(deps[0].version, "1.81.0");
+
+    EXPECT_EQ(deps[1].package, "fmt");
+    EXPECT_EQ(deps[1].version, "9.1.0");
+}
+
+TEST(manifest, DupDependencies)
+{
+    EXPECT_THROW(mock_manifest(R"([package]
+name = "abc"
+version = "0.1.0"
+
+[dependencies]
+toml11 = "3.7.1"
+toml11 = "3.7.2"
+)"),
+        Error);
+
+    EXPECT_THROW(mock_manifest(R"([package]
+name = "abc"
+version = "0.1.0"
+
+[dependencies]
+toml11 = "3.7.1"
+
+[dev-dependencies]
+toml11 = "3.7.2"
+)"),
+        Error);
+
+    EXPECT_THROW(mock_manifest(R"([package]
+name = "abc"
+version = "0.1.0"
+
+[dev-dependencies]
+toml11 = "3.7.1"
+toml11 = "3.7.2"
+)"),
+        Error);
 }
