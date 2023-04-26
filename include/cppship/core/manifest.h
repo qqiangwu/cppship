@@ -48,6 +48,8 @@ public:
 
     const std::vector<DeclaredDependency>& dependencies() const { return mDependencies; }
 
+    const std::vector<DeclaredDependency>& dev_dependencies() const { return mDevDependencies; }
+
 private:
     std::string mName;
     std::string mVersion;
@@ -55,6 +57,7 @@ private:
 
     std::vector<std::string> mDefinitions;
     std::vector<DeclaredDependency> mDependencies;
+    std::vector<DeclaredDependency> mDevDependencies;
 };
 
 void generate_manifest(std::string_view name, CxxStd std, const fs::path& dir);

@@ -138,6 +138,9 @@ void cmd::conan_setup(const BuildContext& ctx)
         << "[test_requires]\n"
         << "gtest/cci.20210126\n"
         << "benchmark/1.7.1\n";
+    for (const auto& dep : ctx.manifest.dev_dependencies()) {
+        oss << fmt::format("{}/{}\n", dep.package, dep.version);
+    }
 
     oss << '\n';
     oss << "[generators]\n"

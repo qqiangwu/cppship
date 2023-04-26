@@ -19,16 +19,18 @@ using namespace ranges::views;
 using namespace cppship;
 using namespace cppship::cmake;
 
-CmakeGenerator::CmakeGenerator(
-    gsl::not_null<const Layout*> layout, const Manifest& manifest, const ResolvedDependencies& deps)
-    : mLayout(layout)
-    , mManifest(manifest)
+namespace {
+
+std::vector<cmake::Dep> collect_cmake_deps(
+    const std::vector<DeclaredDependency>& declared_deps, const ResolvedDependencies& deps)
 {
-    for (const auto& dep : manifest.dependencies()) {
+    std::vector<cmake::Dep> result;
+
+    for (const auto& dep : declared_deps) {
         const auto& resolved_dep = deps.at(dep.package);
 
         if (dep.components.empty()) {
-            mDeps.push_back({
+            result.push_back({
                 .cmake_package = resolved_dep.cmake_package,
                 .cmake_targets = { resolved_dep.cmake_target },
             });
@@ -48,11 +50,26 @@ CmakeGenerator::CmakeGenerator(
             targets_required.push_back(std::move(component));
         }
 
-        mDeps.push_back({
+        result.push_back({
             .cmake_package = resolved_dep.cmake_package,
             .cmake_targets = targets_required,
         });
     }
+
+    return result;
+}
+
+}
+
+CmakeGenerator::CmakeGenerator(
+    gsl::not_null<const Layout*> layout, const Manifest& manifest, const ResolvedDependencies& deps)
+    : mLayout(layout)
+    , mManifest(manifest)
+    , mDeps(collect_cmake_deps(manifest.dependencies(), deps))
+    , mDevDeps(collect_cmake_deps(manifest.dev_dependencies(), deps))
+{
+    ranges::push_back(mDeps4Dev, mDeps);
+    ranges::push_back(mDeps4Dev, mDevDeps);
 }
 
 std::string CmakeGenerator::build() &&
@@ -62,9 +79,10 @@ std::string CmakeGenerator::build() &&
 
     add_lib_sources_();
     add_app_sources_();
+
+    emit_dev_package_finders_();
     add_benches_();
     add_examples_();
-
     add_test_sources_();
 
     emit_footer_();
@@ -152,6 +170,15 @@ void CmakeGenerator::add_app_sources_()
     }
 }
 
+void CmakeGenerator::emit_dev_package_finders_()
+{
+    mOut << "\n# Dev Package finders\n";
+
+    for (const auto& dep : mDevDeps) {
+        mOut << fmt::format("find_package({} REQUIRED)\n", dep.cmake_package);
+    }
+}
+
 void CmakeGenerator::add_benches_()
 {
     const auto& benches = mLayout->benches();
@@ -164,7 +191,7 @@ find_package(benchmark REQUIRED)
 )";
 
     NameTargetMapper mapper;
-    auto deps = mDeps;
+    auto deps = mDeps4Dev;
     deps.push_back({
         .cmake_package = "benchmark",
         .cmake_targets = { "benchmark::benchmark" },
@@ -201,7 +228,7 @@ void CmakeGenerator::add_examples_()
             .name_alias = bin.name,
             .sources = bin.sources,
             .lib = mLib,
-            .deps = mDeps,
+            .deps = mDeps4Dev,
             .definitions = mManifest.definitions(),
             .runtime_dir = "examples",
         });
@@ -233,6 +260,9 @@ find_package(GTest REQUIRED)
 
         if (mLib) {
             mOut << fmt::format("target_link_libraries({} PRIVATE {})\n", target, *mLib);
+        }
+        for (const auto& dep : mDeps4Dev) {
+            mOut << fmt::format("target_link_libraries({} PRIVATE {})\n", target, boost::join(dep.cmake_targets, " "));
         }
 
         mOut << fmt::format("add_test({} {})\n", target, target);
