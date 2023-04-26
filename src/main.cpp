@@ -196,12 +196,14 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
         return cmd::run_test({
             .profile = get_profile(cmd),
             .target = cmd.present("testname"),
+            .name_regex = cmd.present("-R"),
             .rerun_failed = cmd.get<bool>("--rerun-failed"),
         });
     });
 
     test.parser.add_description("run tests");
     test.parser.add_argument("-r").help("build in release mode").default_value(false).implicit_value(true);
+    test.parser.add_argument("-R").help("run tests with name matches the regex").metavar("testregex");
     test.parser.add_argument("--profile")
         .help("build with specific profile")
         .metavar("profile")
@@ -210,9 +212,7 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
         .help("run only the tests that failed previously")
         .default_value(false)
         .implicit_value(true);
-    test.parser.add_argument("testname")
-        .help("if specified, only run tests containing this string in their names")
-        .nargs(0, 1);
+    test.parser.add_argument("testname").help("if specified, only run a single test").nargs(0, 1);
 
     // bench
     auto& bench = commands.emplace_back("bench", common, [](const ArgumentParser& cmd) {
