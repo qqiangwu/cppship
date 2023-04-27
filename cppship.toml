@@ -1,6 +1,6 @@
 [package]
 name = "cppship"
-version = "0.2.1"
+version = "0.3.0"
 authors = []
 std = 20
 
@@ -13,3 +13,6 @@ bshoshany-thread-pool = "3.3.0"
 ms-gsl = "4.0.0"
 argparse = "2.9"
 spdlog = "1.11.0"
+
+[profile]
+cxxflags = "-Wall -Wextra -Werror -Wno-unused-parameter -Wno-missing-field-initializers"

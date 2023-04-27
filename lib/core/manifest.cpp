@@ -3,8 +3,8 @@
 #include "cppship/util/fs.h"
 #include "cppship/util/io.h"
 
+#include <cstdlib>
 #include <set>
-#include <stdexcept>
 
 #include <fmt/os.h>
 #include <range/v3/view/concat.hpp>
@@ -55,7 +55,7 @@ std::vector<DeclaredDependency> parse_dependencis(const toml::value& manifest, c
 {
     std::vector<DeclaredDependency> declared_deps;
 
-    const auto deps = toml::find_or<std::unordered_map<std::string, toml::value>>(manifest, key, {});
+    const auto deps = toml::find_or<toml::table>(manifest, key, {});
     for (const auto& [name, dep] : deps) {
         auto& pkg = declared_deps.emplace_back();
 
@@ -66,8 +66,7 @@ std::vector<DeclaredDependency> parse_dependencis(const toml::value& manifest, c
         } else if (dep.is_table()) {
             pkg.version = toml::find<std::string>(dep, "version");
             pkg.components = toml::find_or<std::vector<std::string>>(dep, "components", {});
-            for (const auto& [key, val] :
-                toml::find_or<std::unordered_map<std::string, toml::value>>(dep, "options", {})) {
+            for (const auto& [key, val] : toml::find_or<toml::table>(dep, "options", {})) {
                 pkg.options.emplace(key, get_option_value(val));
             }
         } else {
@@ -91,6 +90,16 @@ void check_dependency_dups(const std::vector<DeclaredDependency>& deps, const st
     }
 }
 
+ProfileOptions parse_profile_options(
+    const toml::value& manifest, const std::string& key, const std::string& cxxflags_default = "")
+{
+    const auto profile = toml::find_or(manifest, key, {});
+    return {
+        .cxxflags = toml::find_or<std::string>(profile, "cxxflags", cxxflags_default),
+        .definitions = toml::find_or<std::vector<std::string>>(profile, "definitions", {}),
+    };
+}
+
 }
 
 Manifest::Manifest(const fs::path& file)
@@ -106,17 +115,35 @@ Manifest::Manifest(const fs::path& file)
         mName = get<std::string>(package, "name");
         mVersion = get<std::string>(package, "version");
         mCxxStd = get_cxx_std(package);
-        mDefinitions = toml::find_or<std::vector<std::string>>(package, "definitions", {});
 
         mDependencies = parse_dependencis(value, "dependencies");
         mDevDependencies = parse_dependencis(value, "dev-dependencies");
 
         check_dependency_dups(mDependencies, mDevDependencies);
+
+        mProfileDefault = parse_profile_options(value, "profile", "");
+
+        const auto profile = find_or(value, "profile", {});
+        mProfileDebug = parse_profile_options(profile, "debug", "-g");
+        mProfileRelease = parse_profile_options(profile, "release", "-O3 -DNDEBUG");
     } catch (const std::out_of_range& e) {
         throw Error { e.what() };
     } catch (const toml::exception& e) {
         throw Error { fmt::format("invalid manifest format at {}", e.what()) };
     }
+}
+
+const ProfileOptions& Manifest::profile(Profile prof) const
+{
+    switch (prof) {
+    case Profile::debug:
+        return mProfileDebug;
+
+    case Profile::release:
+        return mProfileRelease;
+    }
+
+    std::abort();
 }
 
 void cppship::generate_manifest(std::string_view name, CxxStd std, const fs::path& dir)

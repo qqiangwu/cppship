@@ -9,6 +9,7 @@
 
 #include <boost/algorithm/string.hpp>
 #include <fmt/core.h>
+#include <fmt/format.h>
 #include <range/v3/action/push_back.hpp>
 #include <range/v3/algorithm/any_of.hpp>
 #include <range/v3/range/conversion.hpp>
@@ -18,6 +19,7 @@ using namespace ranges::views;
 
 using namespace cppship;
 using namespace cppship::cmake;
+using namespace fmt::literals;
 
 namespace {
 
@@ -97,21 +99,31 @@ void CmakeGenerator::emit_header_()
 include(CTest)
 enable_testing()
 
-# cpp warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-unused-parameter -Wno-missing-field-initializers")
+# cpp options
 set(CMAKE_SOURCE_DIR "${CMAKE_SOURCE_DIR}/../")
-
-# add conan generator folder
-list(PREPEND CMAKE_PREFIX_PATH "${CONAN_GENERATORS_FOLDER}")
 )";
 
-    mOut << "\n"
-         << fmt::format(R"(# cpp std
+    const auto& default_profile = mManifest.default_profile();
+    if (!default_profile.cxxflags.empty()) {
+        mOut << fmt::format("add_compile_options({})\n", default_profile.cxxflags);
+    }
+
+    mOut << "\n# profile cpp options\n";
+    fill_profile_(Profile::debug);
+    fill_profile_(Profile::release);
+
+    mOut << R"(
+# add conan generator folder
+list(PREPEND CMAKE_PREFIX_PATH "${CONAN_GENERATORS_FOLDER}")
+
+)";
+
+    mOut << fmt::format(R"(# cpp std
 set(CMAKE_CXX_STANDARD {})
 set(CMAKE_CXX_STANDARD_REQUIRED On)
 set(CMAKE_CXX_EXTENSIONS Off)
 )",
-                mManifest.cxx_std());
+        mManifest.cxx_std());
 }
 
 void CmakeGenerator::emit_package_finders_()
@@ -135,7 +147,7 @@ void CmakeGenerator::add_lib_sources_()
         .include_dirs = target->includes,
         .sources = target->sources,
         .deps = mDeps,
-        .definitions = mManifest.definitions(),
+        .definitions = mManifest.default_profile().definitions,
     });
     lib.build(mOut);
 
@@ -153,7 +165,7 @@ void CmakeGenerator::add_app_sources_()
     std::vector<std::string> definitions {
         fmt::format(R"({}_VERSION="${{PROJECT_VERSION}}")", boost::to_upper_copy(std::string { mName })),
     };
-    ranges::push_back(definitions, mManifest.definitions());
+    ranges::push_back(definitions, mManifest.default_profile().definitions);
 
     for (const auto& bin : mLayout->binaries()) {
         cmake::CmakeBin gen({
@@ -204,7 +216,7 @@ find_package(benchmark REQUIRED)
             .sources = bin.sources,
             .lib = mLib,
             .deps = deps,
-            .definitions = mManifest.definitions(),
+            .definitions = mManifest.default_profile().definitions,
         });
 
         gen.build(mOut);
@@ -229,7 +241,7 @@ void CmakeGenerator::add_examples_()
             .sources = bin.sources,
             .lib = mLib,
             .deps = mDeps4Dev,
-            .definitions = mManifest.definitions(),
+            .definitions = mManifest.default_profile().definitions,
             .runtime_dir = "examples",
         });
 
@@ -288,4 +300,19 @@ void CmakeGenerator::emit_footer_()
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
 )";
+}
+
+void CmakeGenerator::fill_profile_(Profile profile)
+{
+    const auto& options = mManifest.profile(profile);
+    const auto& profile_str = to_string(profile);
+
+    std::vector<std::string> cxxflags;
+
+    for (const auto& opt : boost::split(cxxflags, options.cxxflags, boost::is_any_of(" "))) {
+        mOut << fmt::format("add_compile_options($<$<CONFIG:{}>:{}>)\n", profile_str, opt);
+    }
+    for (const auto& def : options.definitions) {
+        mOut << fmt::format("add_compile_definitions($<$<CONFIG:{}>:{}>)\n", profile_str, def);
+    }
 }
