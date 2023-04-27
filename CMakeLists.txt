@@ -1,9 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 project(cppship VERSION 0.2.1)
 
-include(CTest)
-enable_testing()
-
 # cpp std
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED On)
@@ -18,7 +15,12 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-unused-parame
 
 add_subdirectory(lib)
 add_subdirectory(src)
-add_subdirectory(tests)
+
+if(ENABLE_TEST)
+    include(CTest)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})

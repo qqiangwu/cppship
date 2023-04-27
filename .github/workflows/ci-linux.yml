@@ -49,17 +49,19 @@ jobs:
       run: pip3 install conan
 
     - name: Configure CMake
-      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
 
     - name: Build
-      # Build your program with the given configuration
       run: cmake --build ${{github.workspace}}/build --config ${{ matrix.build_type }}
 
     - name: Install
-      # Install your program with the given configuration
       run: cmake --install ${{github.workspace}}/build --config ${{ matrix.build_type }}
+
+    - name: Configure CMake With Tests
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DENABLE_TEST=ON
+
+    - name: Build  Tests
+      run: cmake --build ${{github.workspace}}/build --config ${{ matrix.build_type }}
 
     - name: Test
       run: ctest --output-on-failure --verbose
