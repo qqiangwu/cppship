@@ -80,6 +80,22 @@ spdlog = "1.11.0"
 
 [dev-dependencies]
 scnlib = "1.1.2"
+
+[profile]
+# by default, apply to all profiles
+cxxflags = "-Wall -Wextra -Werror -Wno-unused-parameter -Wno-missing-field-initializers"
+definitions = ["A", "B"]
+
+[profile.debug]
+# appends to cxxflags in [profile]
+cxxflags = "-g"
+
+# merged with definitions in [profile]
+definitions = ["C"]
+
+[profile.release]
+# appends to cxxflags in [profile]
+cxxflags = "-O3 -DNDEBUG"
 ```
 
 ## header-only lib

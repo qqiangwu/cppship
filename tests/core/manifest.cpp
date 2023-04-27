@@ -41,7 +41,6 @@ TEST(manifest, PackageBasicFields)
     EXPECT_EQ(meta.name(), "abc");
     EXPECT_EQ(meta.version(), "0.1.0");
     EXPECT_EQ(meta.cxx_std(), CxxStd::cxx17);
-    EXPECT_TRUE(meta.definitions().empty());
     EXPECT_TRUE(meta.dependencies().empty());
 }
 
@@ -63,28 +62,6 @@ TEST(manifest, PackageStd)
     std = 16
     )"),
         Error);
-}
-
-TEST(manifest, PackageDefinitions)
-{
-    auto meta = mock_manifest(R"([package]
-name = "abc"
-version = "0.1.0"
-std = 11
-definitions = []
-)");
-
-    EXPECT_TRUE(meta.definitions().empty());
-
-    meta = mock_manifest(R"([package]
-name = "abc"
-version = "0.1.0"
-std = 11
-definitions = ["A", "B"]
-)");
-    ASSERT_EQ(meta.definitions().size(), 2);
-    EXPECT_EQ(meta.definitions()[0], "A");
-    EXPECT_EQ(meta.definitions()[1], "B");
 }
 
 TEST(manifest, Dependencies)
@@ -214,4 +191,91 @@ toml11 = "3.7.1"
 toml11 = "3.7.2"
 )"),
         Error);
+}
+
+TEST(manifest, ProfileDefault)
+{
+    auto meta = mock_manifest(R"([package]
+name = "abc"
+version = "0.1.0"
+    )");
+
+    auto prof = meta.default_profile();
+    ASSERT_TRUE(prof.cxxflags.empty());
+    ASSERT_TRUE(prof.definitions.empty());
+
+    meta = mock_manifest(R"([package]
+name = "abc"
+version = "0.1.0"
+
+[profile]
+cxxflags = "-Wall"
+definitions = ["A", "B"]
+    )");
+
+    prof = meta.default_profile();
+    ASSERT_EQ(prof.cxxflags, "-Wall");
+    ASSERT_EQ(prof.definitions.size(), 2);
+
+    ranges::sort(prof.definitions);
+    ASSERT_EQ(prof.definitions[0], "A");
+    ASSERT_EQ(prof.definitions[1], "B");
+}
+
+TEST(manifest, ProfileDebug)
+{
+    auto meta = mock_manifest(R"([package]
+name = "abc"
+version = "0.1.0"
+    )");
+
+    auto prof = meta.profile(Profile::debug);
+    EXPECT_EQ(prof.cxxflags, "-g");
+    ASSERT_TRUE(prof.definitions.empty());
+
+    meta = mock_manifest(R"([package]
+name = "abc"
+version = "0.1.0"
+
+[profile.debug]
+cxxflags = "-Wall"
+definitions = ["A", "B"]
+    )");
+
+    prof = meta.profile(Profile::debug);
+    EXPECT_EQ(prof.cxxflags, "-Wall");
+    EXPECT_EQ(prof.definitions.size(), 2);
+
+    ranges::sort(prof.definitions);
+    EXPECT_EQ(prof.definitions[0], "A");
+    EXPECT_EQ(prof.definitions[1], "B");
+}
+
+TEST(manifest, ProfileRelease)
+{
+    auto meta = mock_manifest(R"([package]
+name = "abc"
+version = "0.1.0"
+    )");
+
+    auto prof = meta.profile(Profile::release);
+    EXPECT_EQ(prof.cxxflags, "-O3 -DNDEBUG");
+    ASSERT_TRUE(prof.definitions.empty());
+
+    meta = mock_manifest(R"([package]
+name = "abc"
+version = "0.1.0"
+
+[profile.release]
+cxxflags = "-Wall"
+definitions = ["A", "B"]
+    )");
+
+    prof = meta.profile(Profile::release);
+    EXPECT_EQ(prof.cxxflags, "-Wall");
+    EXPECT_EQ(prof.definitions.size(), 2);
+
+    ranges::sort(prof.definitions);
+    EXPECT_EQ(prof.definitions[0], "A");
+    EXPECT_EQ(prof.definitions[1], "B");
 }

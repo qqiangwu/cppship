@@ -8,6 +8,7 @@
 
 #include <fmt/format.h>
 
+#include "cppship/core/profile.h"
 #include "cppship/util/fs.h"
 
 namespace cppship {
@@ -44,20 +45,24 @@ public:
 
     CxxStd cxx_std() const { return mCxxStd; }
 
-    const std::vector<std::string>& definitions() const { return mDefinitions; }
-
     const std::vector<DeclaredDependency>& dependencies() const { return mDependencies; }
 
     const std::vector<DeclaredDependency>& dev_dependencies() const { return mDevDependencies; }
+
+    const ProfileOptions& default_profile() const { return mProfileDefault; }
+    const ProfileOptions& profile(Profile prof) const;
 
 private:
     std::string mName;
     std::string mVersion;
     CxxStd mCxxStd = CxxStd::cxx17;
 
-    std::vector<std::string> mDefinitions;
     std::vector<DeclaredDependency> mDependencies;
     std::vector<DeclaredDependency> mDevDependencies;
+
+    ProfileOptions mProfileDefault;
+    ProfileOptions mProfileDebug;
+    ProfileOptions mProfileRelease;
 };
 
 void generate_manifest(std::string_view name, CxxStd std, const fs::path& dir);

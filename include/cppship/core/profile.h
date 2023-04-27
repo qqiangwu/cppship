@@ -2,6 +2,7 @@
 
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include <boost/algorithm/string/case_conv.hpp>
 
@@ -25,13 +26,13 @@ inline std::string_view to_string(Profile profile)
 {
     switch (profile) {
     case Profile::debug:
-        return "Debug";
+        return kProfileDebug;
 
     case Profile::release:
-        return "Release";
+        return kProfileRelease;
     }
 
-    std::terminate();
+    std::abort();
 }
 
 inline Profile parse_profile(std::string profile)
@@ -48,5 +49,10 @@ inline Profile parse_profile(std::string profile)
 
     throw InvalidProfile {};
 }
+
+struct ProfileOptions {
+    std::string cxxflags;
+    std::vector<std::string> definitions;
+};
 
 }

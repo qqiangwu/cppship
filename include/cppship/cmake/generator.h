@@ -39,7 +39,7 @@ private:
     void emit_footer_();
 
 private:
-    std::set<std::string> list_sources_(std::string_view dir);
+    void fill_profile_(Profile profile);
 
 private:
     std::ostringstream mOut;
