@@ -77,6 +77,9 @@ bshoshany-thread-pool = "3.3.0"
 ms-gsl = "4.0.0"
 argparse = "2.9"
 spdlog = "1.11.0"
+
+[dev-dependencies]
+scnlib = "1.1.2"
 ```
 
 ## header-only lib
@@ -158,6 +161,9 @@ cppship build --tests
 # build examples only
 cppship build --examples
 
+# build benches only
+cppship build --benches
+
 # build binaries only
 cppship build --bins
 ```
@@ -175,10 +181,18 @@ cppship run --example <name>
 ```
 
 ## test
-```
+```bash
 cppship test
 cppship test --rerun-failed
 cppship test <testname>
+cppship test -R <testname-regex>
+```
+
+## bench
+```bash
+cppship bench
+
+cppship bench <bench-name>
 ```
 
 ## install
