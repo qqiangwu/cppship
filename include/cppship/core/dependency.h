@@ -22,7 +22,7 @@ using ResolvedDependencies = std::map<std::string, Dependency>;
 
 Dependency parse_dep(std::string_view cmake_package, const fs::path& target_file);
 
-ResolvedDependencies collect_deps(const fs::path& conan_dep_dir, std::string_view profile);
+ResolvedDependencies collect_conan_deps(const fs::path& conan_dep_dir, std::string_view profile);
 
 }
 

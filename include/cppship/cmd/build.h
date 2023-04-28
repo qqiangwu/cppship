@@ -7,6 +7,7 @@
 #include <boost/algorithm/string/case_conv.hpp>
 #include <gsl/narrow>
 
+#include "cppship/core/dependency.h"
 #include "cppship/core/layout.h"
 #include "cppship/core/manifest.h"
 #include "cppship/core/profile.h"
@@ -30,6 +31,7 @@ struct BuildContext {
 
     fs::path root = get_project_root();
     fs::path build_dir = root / kBuildPath;
+    fs::path deps_dir = build_dir / "deps";
     fs::path profile_dir = build_dir / boost::to_lower_copy(profile);
     fs::path metafile = root / "cppship.toml";
 
@@ -62,6 +64,8 @@ void conan_detect_profile(const BuildContext& ctx);
 void conan_setup(const BuildContext& ctx);
 
 void conan_install(const BuildContext& ctx);
+
+ResolvedDependencies cppship_install(const BuildContext& ctx);
 
 void cmake_setup(const BuildContext& ctx);
 

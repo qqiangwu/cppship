@@ -75,7 +75,7 @@ Dependency cppship::parse_dep(std::string_view cmake_package, const fs::path& ta
     return dep;
 }
 
-ResolvedDependencies cppship::collect_deps(const fs::path& conan_dep_dir, std::string_view profile)
+ResolvedDependencies cppship::collect_conan_deps(const fs::path& conan_dep_dir, std::string_view profile)
 {
     std::map<std::string, Dependency> deps;
 

@@ -5,6 +5,7 @@
 A cargo-like modern cpp build tools, aimed to combine all existing best practices, rather than re-inventing them from scratch.
 
 + dependency management: [conan2](https://conan.io/)
+  + you can also directly declare a header-only lib in git as a dependency since we already have tons of same libs
 + build: [cmake](https://cmake.org/)
 + tests: google test
 + benches: google bench
@@ -77,6 +78,8 @@ bshoshany-thread-pool = "3.3.0"
 ms-gsl = "4.0.0"
 argparse = "2.9"
 spdlog = "1.11.0"
+# git header-only libs
+scope_guard = { git = "https://github.com/Neargye/scope_guard.git", commit = "fa60305b5805dcd872b3c60d0bc517c505f99502" }
 
 [dev-dependencies]
 scnlib = "1.1.2"

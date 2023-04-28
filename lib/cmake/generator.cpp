@@ -113,6 +113,7 @@ enable_testing()
     mOut << R"(
 # add conan generator folder
 list(PREPEND CMAKE_PREFIX_PATH "${CONAN_GENERATORS_FOLDER}")
+list(PREPEND CMAKE_PREFIX_PATH "${CPPSHIP_DEPS_DIR}")
 
 )";
 
