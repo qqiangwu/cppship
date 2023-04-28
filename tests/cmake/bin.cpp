@@ -109,7 +109,6 @@ b.cpp)
 target_include_directories(test PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
 target_link_libraries(test PRIVATE lib)
-
 target_link_libraries(test PRIVATE pkg1 pkg2)
 
 set_target_properties(test PROPERTIES OUTPUT_NAME "xxx")
@@ -137,7 +136,6 @@ b.cpp)
 target_include_directories(test PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
 target_link_libraries(test PRIVATE lib)
-
 target_link_libraries(test PRIVATE pkg1 pkg2)
 
 target_compile_definitions(test PRIVATE A B)
