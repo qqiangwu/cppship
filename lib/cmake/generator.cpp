@@ -13,6 +13,7 @@
 #include <range/v3/action/push_back.hpp>
 #include <range/v3/algorithm/any_of.hpp>
 #include <range/v3/range/conversion.hpp>
+#include <range/v3/view/concat.hpp>
 #include <range/v3/view/transform.hpp>
 
 using namespace ranges::views;
@@ -70,8 +71,6 @@ CmakeGenerator::CmakeGenerator(
     , mDeps(collect_cmake_deps(manifest.dependencies(), deps))
     , mDevDeps(collect_cmake_deps(manifest.dev_dependencies(), deps))
 {
-    ranges::push_back(mDeps4Dev, mDeps);
-    ranges::push_back(mDeps4Dev, mDevDeps);
 }
 
 std::string CmakeGenerator::build() &&
@@ -100,7 +99,6 @@ include(CTest)
 enable_testing()
 
 # cpp options
-set(CMAKE_SOURCE_DIR "${CMAKE_SOURCE_DIR}/../")
 )";
 
     const auto& default_profile = mManifest.default_profile();
@@ -133,6 +131,24 @@ void CmakeGenerator::emit_package_finders_()
     for (const auto& dep : mDeps) {
         mOut << fmt::format("find_package({} REQUIRED)\n", dep.cmake_package);
     }
+
+    if (!mDeps.empty()) {
+        mOut << '\n';
+    }
+
+    mOut << fmt::format("add_library({}_deps INTERFACE)\n", mName);
+
+    for (const auto& dep : mDeps) {
+        mOut << fmt::format(
+            "target_link_libraries({}_deps INTERFACE {})\n", mName, boost::join(dep.cmake_targets, " "));
+    }
+
+    mDeps = {
+        {
+            .cmake_package = "",
+            .cmake_targets = { fmt::format("{}_deps", mName) },
+        },
+    };
 }
 
 void CmakeGenerator::add_lib_sources_()
@@ -189,6 +205,24 @@ void CmakeGenerator::emit_dev_package_finders_()
     for (const auto& dep : mDevDeps) {
         mOut << fmt::format("find_package({} REQUIRED)\n", dep.cmake_package);
     }
+
+    if (!mDevDeps.empty()) {
+        mOut << '\n';
+    }
+
+    mOut << fmt::format("add_library({}_dev_deps INTERFACE)\n", mName);
+
+    for (const auto& dep : concat(mDeps, mDevDeps)) {
+        mOut << fmt::format(
+            "target_link_libraries({}_dev_deps INTERFACE {})\n", mName, boost::join(dep.cmake_targets, " "));
+    }
+
+    mDevDeps = {
+        {
+            .cmake_package = "",
+            .cmake_targets = { fmt::format("{}_dev_deps", mName) },
+        },
+    };
 }
 
 void CmakeGenerator::add_benches_()
@@ -203,7 +237,7 @@ find_package(benchmark REQUIRED)
 )";
 
     NameTargetMapper mapper;
-    auto deps = mDeps4Dev;
+    auto deps = mDevDeps;
     deps.push_back({
         .cmake_package = "benchmark",
         .cmake_targets = { "benchmark::benchmark" },
@@ -240,7 +274,7 @@ void CmakeGenerator::add_examples_()
             .name_alias = bin.name,
             .sources = bin.sources,
             .lib = mLib,
-            .deps = mDeps4Dev,
+            .deps = mDevDeps,
             .definitions = mManifest.default_profile().definitions,
             .runtime_dir = "examples",
         });
@@ -273,7 +307,7 @@ find_package(GTest REQUIRED)
         if (mLib) {
             mOut << fmt::format("target_link_libraries({} PRIVATE {})\n", target, *mLib);
         }
-        for (const auto& dep : mDeps4Dev) {
+        for (const auto& dep : mDevDeps) {
             mOut << fmt::format("target_link_libraries({} PRIVATE {})\n", target, boost::join(dep.cmake_targets, " "));
         }
 

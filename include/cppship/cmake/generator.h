@@ -50,9 +50,6 @@ private:
     std::vector<cmake::Dep> mDeps;
     std::vector<cmake::Dep> mDevDeps;
 
-    // mDeps + mDevDeps
-    std::vector<cmake::Dep> mDeps4Dev;
-
     std::string_view mName = mManifest.name();
 
     std::optional<std::string> mLib;

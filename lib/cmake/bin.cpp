@@ -35,12 +35,8 @@ void CmakeBin::build(std::ostream& out) const
         out << "\n" << fmt::format("target_link_libraries({} PRIVATE {})\n", mDesc.name, *mDesc.lib);
     }
 
-    if (!mDesc.deps.empty()) {
-        out << "\n";
-        for (const auto& dep : mDesc.deps) {
-            out << fmt::format(
-                "target_link_libraries({} PRIVATE {})\n", mDesc.name, boost::join(dep.cmake_targets, " "));
-        }
+    for (const auto& dep : mDesc.deps) {
+        out << fmt::format("target_link_libraries({} PRIVATE {})\n", mDesc.name, boost::join(dep.cmake_targets, " "));
     }
 
     if (const auto& defs = mDesc.definitions; !defs.empty()) {
