@@ -4,6 +4,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 #include <fmt/format.h>
@@ -13,11 +14,22 @@
 
 namespace cppship {
 
+struct ConanDep {
+    std::string version;
+    std::unordered_map<std::string, std::string> options;
+};
+
+struct GitHeaderOnlyDep {
+    std::string git;
+    std::string commit;
+};
+
+using DependencyDesc = std::variant<ConanDep, GitHeaderOnlyDep>;
+
 struct DeclaredDependency {
     std::string package;
-    std::string version;
     std::vector<std::string> components;
-    std::unordered_map<std::string, std::string> options;
+    DependencyDesc desc;
 };
 
 enum class CxxStd { cxx11 = 11, cxx14 = 14, cxx17 = 17, cxx20 = 20, cxx23 = 23 };

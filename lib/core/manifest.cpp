@@ -62,12 +62,29 @@ std::vector<DeclaredDependency> parse_dependencis(const toml::value& manifest, c
         pkg.package = name;
 
         if (dep.is_string()) {
-            pkg.version = dep.as_string();
+            pkg.desc = ConanDep { .version = dep.as_string() };
         } else if (dep.is_table()) {
-            pkg.version = toml::find<std::string>(dep, "version");
-            pkg.components = toml::find_or<std::vector<std::string>>(dep, "components", {});
-            for (const auto& [key, val] : toml::find_or<toml::table>(dep, "options", {})) {
-                pkg.options.emplace(key, get_option_value(val));
+            if (dep.contains("git")) {
+                GitHeaderOnlyDep desc;
+                desc.git = find<std::string>(dep, "git");
+                desc.commit = find_or<std::string>(dep, "commit", "");
+                if (desc.git.empty()) {
+                    throw Error { fmt::format("invalid git url {}", desc.git) };
+                }
+                if (desc.commit.empty()) {
+                    throw Error { fmt::format("empty commit for git dependency {}", desc.git) };
+                }
+
+                pkg.desc = desc;
+            } else {
+                ConanDep desc;
+                desc.version = toml::find<std::string>(dep, "version");
+                for (const auto& [key, val] : toml::find_or<toml::table>(dep, "options", {})) {
+                    desc.options.emplace(key, get_option_value(val));
+                }
+
+                pkg.components = toml::find_or<std::vector<std::string>>(dep, "components", {});
+                pkg.desc = desc;
             }
         } else {
             throw Error { fmt::format("invalid dependency {} in manifest", name) };
