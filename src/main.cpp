@@ -272,7 +272,7 @@ try {
 
     ArgumentParser common("common", "", argparse::default_arguments::none);
     common.add_argument("-V", "--verbose").help("show verbose log").default_value(false).implicit_value(true);
-    common.add_argument("-q", "--quiet").help("do not pring log messages").default_value(false).implicit_value(true);
+    common.add_argument("-q", "--quiet").help("do not print log messages").default_value(false).implicit_value(true);
 
     ArgumentParser app("cppship", CPPSHIP_VERSION);
     app.add_parents(common);
