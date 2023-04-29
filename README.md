@@ -5,7 +5,8 @@
 A cargo-like modern cpp build tools, aimed to combine all existing best practices, rather than re-inventing them from scratch.
 
 + dependency management: [conan2](https://conan.io/)
-  + you can also directly declare a header-only lib in git as a dependency since we already have tons of such libs
+  + you can also directly declare a header-only lib on git as a dependency since we already have tons of such libs
+  + we will not support import arbitrary libs on git since it will make our package less composable
 + build: [cmake](https://cmake.org/)
 + tests: google test
 + benches: google bench
