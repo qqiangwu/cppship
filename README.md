@@ -149,6 +149,18 @@ make sure your project have the following structure:
   + b1.cpp: depends on lib, google benchmark
   + b2.cpp: depends on lib, google benchmark
 
+# Convert to cmake project
+You can easily convert a cppship project into a cmake project:
+
+```bash
+# CMakeFiles.txt and conanfiles.txt will be generated under the project root dir
+cppship cmake
+
+# Build with cmake
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+cmake --build build
+```
+
 # Usage
 ## Init
 ```bash
