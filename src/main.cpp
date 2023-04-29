@@ -263,6 +263,14 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
         .metavar("cxxstd")
         .scan<'d', int>();
 
+    // cmake
+    auto& cmake = commands.emplace_back("cmake", common, [](const ArgumentParser& cmd) {
+        (void)cmd;
+        return cmd::run_cmake({});
+    });
+
+    cmake.parser.add_description("generate cmake CMakeFiles.txt");
+
     return commands;
 }
 

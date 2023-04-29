@@ -1,3 +1,23 @@
+#include "cppship/cmake/dependency_injector.h"
+#include "cppship/util/fs.h"
+#include "cppship/util/io.h"
+
+#include <boost/algorithm/cxx11/any_of.hpp>
+#include <fmt/format.h>
+#include <fmt/os.h>
+#include <range/v3/range/conversion.hpp>
+#include <range/v3/view/concat.hpp>
+#include <range/v3/view/filter.hpp>
+
+using namespace cppship;
+using namespace cppship::cmake;
+using namespace boost::algorithm;
+using namespace ranges::views;
+using namespace fmt::literals;
+
+namespace {
+
+constexpr std::string_view kConanCmakeScript = R"(# cmake conan adaptor
 function(detect_os OS)
     # it could be cross compilation
     message(STATUS "Conan-cmake: cmake_system_name=${CMAKE_SYSTEM_NAME}")
@@ -226,4 +246,82 @@ macro(conan_setup)
     endif()
 endmacro()
 
-conan_setup()
+conan_setup())";
+
+void inject_conan_deps(std::ostream& out)
+{
+    const fs::path cmake_util_dir = "cmake";
+
+    create_if_not_exist(cmake_util_dir);
+    write(cmake_util_dir / "conan.cmake", kConanCmakeScript);
+
+    out << "include(cmake/conan.cmake)\n";
+}
+
+void inject_git_deps(std::ostream& out, const std::vector<DeclaredDependency>& deps)
+{
+    const fs::path cmake_util_dir = "cmake";
+    create_if_not_exist(cmake_util_dir);
+
+    auto oss = fmt::output_file((cmake_util_dir / "deps.cmake").string());
+    oss.print("include(FetchContent)\n\n");
+
+    for (const auto& dep : deps) {
+        const auto& desc = get<GitHeaderOnlyDep>(dep.desc);
+
+        oss.print(R"(# Dep for {package}
+FetchContent_Declare({package}
+    GIT_REPOSITORY "{git}"
+    GIT_TAG "{commit}"
+    SOURCE_DIR "{deps_dir}/{package}"
+)
+FetchContent_MakeAvailable({package})
+message("-- Deps: download {package} from {git}:{commit}")
+
+)",
+            "package"_a = dep.package, "git"_a = desc.git, "commit"_a = desc.commit,
+            "deps_dir"_a = "${CMAKE_BINARY_DIR}/deps");
+    }
+
+    // commit file
+    oss.print(R"(list(PREPEND CMAKE_PREFIX_PATH "${{CMAKE_SOURCE_DIR}}/cmake"))");
+    oss.print("\n");
+    oss.close();
+
+    for (const auto& dep : deps) {
+        write(cmake_util_dir / fmt::format("{}-config.cmake", dep.package),
+            fmt::format(R"(# export {package}
+add_library(cppship::{package} INTERFACE IMPORTED)
+target_include_directories(cppship::{package} INTERFACE ${{CMAKE_BINARY_DIR}}/deps/{package}/include)
+)",
+                "package"_a = dep.package));
+    }
+
+    out << "include(cmake/deps.cmake)\n";
+}
+
+}
+
+void CmakeDependencyInjector::inject(std::ostream& out, const Manifest& manifest)
+{
+    const auto deps = concat(manifest.dependencies(), manifest.dev_dependencies());
+    if (deps.empty()) {
+        return;
+    }
+
+    const auto has_conan_deps
+        = any_of(deps, [](const DeclaredDependency& dep) { return std::holds_alternative<ConanDep>(dep.desc); });
+    const auto has_git_deps = any_of(
+        deps, [](const DeclaredDependency& dep) { return std::holds_alternative<GitHeaderOnlyDep>(dep.desc); });
+
+    out << "\n# Dependency management\n";
+    if (has_conan_deps) {
+        inject_conan_deps(out);
+    }
+
+    if (has_git_deps) {
+        inject_git_deps(out, deps | filter([](const DeclaredDependency& dep) {
+            return std::holds_alternative<GitHeaderOnlyDep>(dep.desc);
+        }) | ranges::to<std::vector<DeclaredDependency>>());
+    }
+}

@@ -64,18 +64,20 @@ std::vector<cmake::Dep> collect_cmake_deps(
 
 }
 
-CmakeGenerator::CmakeGenerator(
-    gsl::not_null<const Layout*> layout, const Manifest& manifest, const ResolvedDependencies& deps)
+CmakeGenerator::CmakeGenerator(gsl::not_null<const Layout*> layout, const Manifest& manifest,
+    const ResolvedDependencies& deps, GeneratorOptions options)
     : mLayout(layout)
     , mManifest(manifest)
     , mDeps(collect_cmake_deps(manifest.dependencies(), deps))
     , mDevDeps(collect_cmake_deps(manifest.dev_dependencies(), deps))
+    , mInjector(std::move(options.injector))
 {
 }
 
 std::string CmakeGenerator::build() &&
 {
     emit_header_();
+    emit_dependency_injector_();
     emit_package_finders_();
 
     add_lib_sources_();
@@ -98,11 +100,11 @@ void CmakeGenerator::emit_header_()
 include(CTest)
 enable_testing()
 
-# cpp options
 )";
 
     const auto& default_profile = mManifest.default_profile();
     if (!default_profile.cxxflags.empty()) {
+        mOut << "# cpp options\n";
         mOut << fmt::format("add_compile_options({})\n", default_profile.cxxflags);
     }
 
@@ -110,19 +112,27 @@ enable_testing()
     fill_profile_(Profile::debug);
     fill_profile_(Profile::release);
 
-    mOut << R"(
-# add conan generator folder
-list(PREPEND CMAKE_PREFIX_PATH "${CONAN_GENERATORS_FOLDER}")
-list(PREPEND CMAKE_PREFIX_PATH "${CPPSHIP_DEPS_DIR}")
-
-)";
-
-    mOut << fmt::format(R"(# cpp std
+    mOut << fmt::format(R"(
+# cpp std
 set(CMAKE_CXX_STANDARD {})
 set(CMAKE_CXX_STANDARD_REQUIRED On)
 set(CMAKE_CXX_EXTENSIONS Off)
 )",
         mManifest.cxx_std());
+}
+
+void CmakeGenerator::emit_dependency_injector_()
+{
+    if (mInjector) {
+        mInjector->inject(mOut, mManifest);
+        return;
+    }
+
+    mOut << R"(
+# add conan generator folder
+list(PREPEND CMAKE_PREFIX_PATH "${CONAN_GENERATORS_FOLDER}")
+list(PREPEND CMAKE_PREFIX_PATH "${CPPSHIP_DEPS_DIR}")
+)";
 }
 
 void CmakeGenerator::emit_package_finders_()

@@ -8,7 +8,6 @@ set(CMAKE_CXX_EXTENSIONS Off)
 
 # must go after cpp std block
 include(cmake/conan.cmake)
-conan_setup()
 
 # cpp warnings
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-unused-parameter -Wno-missing-field-initializers")
