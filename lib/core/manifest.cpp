@@ -203,4 +203,11 @@ Checks: -*,boost-*,bugprone-*,-bugprone-narrowing-conversions,-bugprone-easily-s
 WarningsAsErrors: '*'
 InheritParentConfig: false
 )");
+
+    // add .gitignore
+    write(dir / ".gitignore", R"(# ignore build and clangd .cache
+.cache
+.build
+build
+)");
 }
