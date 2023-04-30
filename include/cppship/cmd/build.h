@@ -36,6 +36,7 @@ struct BuildContext {
     fs::path metafile = root / "cppship.toml";
 
     fs::path conan_file = build_dir / "conanfile.txt";
+    fs::path git_dep_file = build_dir / "git_dep.toml";
     fs::path conan_profile_path = profile_dir / "conan_profile";
     fs::path inventory_file = profile_dir / "inventory.toml";
     fs::path dependency_file = profile_dir / "dependency.toml";
@@ -65,7 +66,8 @@ void conan_setup(const BuildContext& ctx);
 
 void conan_install(const BuildContext& ctx);
 
-ResolvedDependencies cppship_install(const BuildContext& ctx);
+void cppship_install(
+    const BuildContext& ctx, const ResolvedDependencies& cppship_deps, const ResolvedDependencies& all_deps);
 
 void cmake_setup(const BuildContext& ctx);
 
