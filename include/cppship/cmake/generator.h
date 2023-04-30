@@ -16,13 +16,14 @@
 namespace cppship {
 
 struct GeneratorOptions {
+    std::vector<cmake::Dep> deps;
+    std::vector<cmake::Dep> dev_deps;
     std::unique_ptr<cmake::DependencyInjector> injector;
 };
 
 class CmakeGenerator {
 public:
-    CmakeGenerator(gsl::not_null<const Layout*> layout, const Manifest& manifest, const ResolvedDependencies& deps,
-        GeneratorOptions options = {});
+    CmakeGenerator(gsl::not_null<const Layout*> layout, const Manifest& manifest, GeneratorOptions options = {});
 
     std::string build() &&;
 

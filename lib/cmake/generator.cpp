@@ -1,5 +1,6 @@
 #include "cppship/cmake/generator.h"
 #include "cppship/cmake/bin.h"
+#include "cppship/cmake/dep.h"
 #include "cppship/cmake/group.h"
 #include "cppship/cmake/lib.h"
 #include "cppship/cmake/naming.h"
@@ -22,9 +23,7 @@ using namespace cppship;
 using namespace cppship::cmake;
 using namespace fmt::literals;
 
-namespace {
-
-std::vector<cmake::Dep> collect_cmake_deps(
+std::vector<cmake::Dep> cmake::collect_cmake_deps(
     const std::vector<DeclaredDependency>& declared_deps, const ResolvedDependencies& deps)
 {
     std::vector<cmake::Dep> result;
@@ -62,14 +61,11 @@ std::vector<cmake::Dep> collect_cmake_deps(
     return result;
 }
 
-}
-
-CmakeGenerator::CmakeGenerator(gsl::not_null<const Layout*> layout, const Manifest& manifest,
-    const ResolvedDependencies& deps, GeneratorOptions options)
+CmakeGenerator::CmakeGenerator(gsl::not_null<const Layout*> layout, const Manifest& manifest, GeneratorOptions options)
     : mLayout(layout)
     , mManifest(manifest)
-    , mDeps(collect_cmake_deps(manifest.dependencies(), deps))
-    , mDevDeps(collect_cmake_deps(manifest.dev_dependencies(), deps))
+    , mDeps(std::move(options.deps))
+    , mDevDeps(std::move(options.dev_deps))
     , mInjector(std::move(options.injector))
 {
 }

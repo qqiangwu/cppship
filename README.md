@@ -6,6 +6,7 @@ A cargo-like modern cpp build tools, aimed to combine all existing best practice
 
 + dependency management: [conan2](https://conan.io/)
   + you can also directly declare a header-only lib on git as a dependency since we already have tons of such libs
+  + you can also directly declare a cppship lib on git as a dependency
   + we will not support import arbitrary libs on git since it will make our package less composable
 + build: [cmake](https://cmake.org/)
 + tests: google test
@@ -81,6 +82,12 @@ argparse = "2.9"
 spdlog = "1.11.0"
 # git header-only libs
 scope_guard = { git = "https://github.com/Neargye/scope_guard.git", commit = "fa60305b5805dcd872b3c60d0bc517c505f99502" }
+
+# git cppship header only lib
+header_only = { git = "https://github.com/cppship/demo_header_only.git", commit = "93f6793" }
+
+# git cppship lib
+simple_lib = { git = "https://github.com/cppship/demo_lib.git", commit = "25dbedf" }
 
 [dev-dependencies]
 scnlib = "1.1.2"

@@ -1,11 +1,14 @@
 #include "cppship/cmd/build.h"
 #include "cppship/cmake/generator.h"
 #include "cppship/cmake/group.h"
+#include "cppship/cmake/lib.h"
 #include "cppship/core/compiler.h"
 #include "cppship/core/dependency.h"
+#include "cppship/core/resolver.h"
 #include "cppship/exception.h"
 #include "cppship/util/cmd.h"
 #include "cppship/util/fs.h"
+#include "cppship/util/git.h"
 #include "cppship/util/log.h"
 #include "cppship/util/repo.h"
 
@@ -131,41 +134,43 @@ void cmd::conan_setup(const BuildContext& ctx)
         return;
     }
 
+    status("dependency", "start resolving");
+    Resolver resolver(ctx.deps_dir, &ctx.manifest, &util::git_clone);
+    const auto result = std::move(resolver).resolve();
+
     status("dependency", "generate conanfile");
     std::ostringstream oss;
     oss << "[requires]\n";
-    for (const auto& dep : ctx.manifest.dependencies()) {
-        if (const auto* desc = std::get_if<ConanDep>(&dep.desc)) {
-            oss << fmt::format("{}/{}\n", dep.package, desc->version);
-        }
+    for (const auto& dep : result.conan_dependencies) {
+        const auto& desc = std::get<ConanDep>(dep.desc);
+        oss << fmt::format("{}/{}\n", dep.package, desc.version);
     }
 
     oss << '\n'
         << "[test_requires]\n"
         << "gtest/cci.20210126\n"
         << "benchmark/1.7.1\n";
-    for (const auto& dep : ctx.manifest.dev_dependencies()) {
-        if (const auto* desc = std::get_if<ConanDep>(&dep.desc)) {
-            oss << fmt::format("{}/{}\n", dep.package, desc->version);
-        }
+    for (const auto& dep : result.conan_dev_dependencies) {
+        const auto& desc = std::get<ConanDep>(dep.desc);
+        oss << fmt::format("{}/{}\n", dep.package, desc.version);
     }
 
     oss << '\n';
     oss << "[generators]\n"
         << "CMakeDeps\n";
 
-    if (const auto& deps = ctx.manifest.dependencies(); !deps.empty()) {
+    if (const auto& deps = rng::concat(result.conan_dependencies, result.conan_dev_dependencies); !deps.empty()) {
         oss << "\n[options]\n";
 
         for (const auto& dep : deps) {
-            if (const auto* desc = std::get_if<ConanDep>(&dep.desc)) {
-                for (const auto& [key, val] : desc->options) {
-                    oss << fmt::format("{}/*:{}={}\n", dep.package, key, val);
-                }
+            const auto& desc = get<ConanDep>(dep.desc);
+            for (const auto& [key, val] : desc.options) {
+                oss << fmt::format("{}/*:{}={}\n", dep.package, key, val);
             }
         }
     }
 
+    write(ctx.git_dep_file, toml::format(toml::value(result.resolved_dependencies)));
     write(ctx.conan_file, oss.str());
 }
 
@@ -186,91 +191,57 @@ void cmd::conan_install(const BuildContext& ctx)
     }
 
     auto deps = collect_conan_deps(ctx.profile_dir / "conan", ctx.profile);
+    auto cppship_deps = toml::get<ResolvedDependencies>(toml::parse(ctx.git_dep_file));
 
-    for (const auto& [name, dep] : cppship_install(ctx)) {
+    for (const auto& [name, dep] : cppship_deps) {
         deps.emplace(name, dep);
+    }
+
+    if (!cppship_deps.empty()) {
+        cppship_install(ctx, cppship_deps, deps);
     }
 
     write(ctx.dependency_file, toml::format(toml::value(deps)));
 }
 
-namespace {
-
-void verify_header_only_lib(const std::string_view package, const fs::path& dep_dir)
+void cmd::cppship_install(
+    const BuildContext& ctx, const ResolvedDependencies& cppship_deps, const ResolvedDependencies& all_deps)
 {
-    if (!fs::exists(dep_dir / kIncludePath)) {
-        throw Error { fmt::format("git dependency {} has no include/", package) };
-    }
-
-    if (fs::exists(dep_dir / kLibPath) || fs::exists(dep_dir / kSrcPath)) {
-        throw Error { fmt::format(
-            "git dependency {} has {}/ or {}/ for header only lib", package, kLibPath, kSrcPath) };
-    }
-}
-
-}
-
-ResolvedDependencies cmd::cppship_install(const BuildContext& ctx)
-{
-    create_if_not_exist(ctx.deps_dir);
-    ScopedCurrentDir guard(ctx.deps_dir);
-
-    ResolvedDependencies deps;
-    for (const auto& dep : rng::concat(ctx.manifest.dependencies(), ctx.manifest.dev_dependencies())) {
-        const auto* lib = get_if<GitHeaderOnlyDep>(&dep.desc);
-        if (lib == nullptr) {
-            continue;
-        }
-
+    for (const auto& [package, dep] : cppship_deps) {
         const auto cmake_target = fmt::format("cppship::{}", dep.package);
-        const fs::path package_dep_dir = ctx.deps_dir / dep.package;
-        const fs::path fingerprint = package_dep_dir / fmt::format("cppship.{}", lib->commit);
-        if (fs::exists(fingerprint)) {
-            deps.emplace(dep.package,
-                Dependency {
-                    .package = dep.package,
-                    .cmake_package = dep.package,
-                    .cmake_target = cmake_target,
-                });
-            continue;
-        }
+        const auto package_dir = ctx.deps_dir / package;
+        const auto package_manifest = package_dir / kRepoConfigFile;
+        const auto package_cmake_config_file = ctx.deps_dir / fmt::format("{}-config.cmake", package);
 
-        fs::remove_all(package_dep_dir);
-
-        status("dependency", "install git dependency {} from {}", dep.package, lib->git);
-
-        const int res = run_cmd(fmt::format("git clone {} {}", lib->git, dep.package));
-        if (res != 0) {
-            throw Error { fmt::format("install {} from {} failed", dep.package, lib->git) };
-        }
-
-        {
-            ScopedCurrentDir guard(package_dep_dir);
-            const int res = run_cmd(fmt::format("git reset --hard {}", lib->commit));
-            if (res != 0) {
-                throw Error { fmt::format("commit {} not found for {}", lib->commit, dep.package) };
-            }
-        }
-
-        verify_header_only_lib(dep.package, ctx.deps_dir / dep.package);
-
-        write(ctx.deps_dir / fmt::format("{}-config.cmake", dep.package),
-            fmt::format(R"(# header only lib config generated by cppship
+        if (!fs::exists(package_manifest)) {
+            write(package_cmake_config_file,
+                fmt::format(R"(# header only lib config generated by cppship
 add_library({target} INTERFACE IMPORTED)
 target_include_directories({target} INTERFACE ${{CMAKE_SOURCE_DIR}}/deps/{package}/include)
 )",
-                "target"_a = cmake_target, "package"_a = dep.package));
-        write(fingerprint, "");
+                    "target"_a = cmake_target, "package"_a = dep.package));
 
-        deps.emplace(dep.package,
-            Dependency {
-                .package = dep.package,
-                .cmake_package = dep.package,
-                .cmake_target = cmake_target,
-            });
+            continue;
+        }
+
+        Manifest manifest(package_manifest);
+        Layout layout(package_dir, package);
+        const auto lib_target = *layout.lib();
+        const auto cmake_deps = cmake::collect_cmake_deps(manifest.dependencies(), all_deps);
+        cmake::CmakeLib lib({
+            .name = lib_target.name,
+            .include_dirs = lib_target.includes,
+            .sources = lib_target.sources,
+            .deps = cmake_deps,
+            .definitions = manifest.default_profile().definitions,
+        });
+
+        std::ostringstream out;
+        lib.build(out);
+
+        out << fmt::format("\nadd_library({} ALIAS {})\n", cmake_target, lib.target());
+        write(package_cmake_config_file, out.str());
     }
-
-    return deps;
 }
 
 void cmd::cmake_setup(const BuildContext& ctx)
@@ -292,8 +263,15 @@ void cmd::cmake_setup(const BuildContext& ctx)
     }
 
     status("config", "generate cmake files");
+    Resolver resolver(ctx.deps_dir, &ctx.manifest, nullptr);
+    const auto result = std::move(resolver).resolve();
+
     ResolvedDependencies deps = toml::get<ResolvedDependencies>(toml::parse(ctx.dependency_file));
-    CmakeGenerator gen(&ctx.layout, ctx.manifest, deps);
+    CmakeGenerator gen(&ctx.layout, ctx.manifest,
+        GeneratorOptions {
+            .deps = cmake::collect_cmake_deps(result.dependencies, deps),
+            .dev_deps = cmake::collect_cmake_deps(result.dev_dependencies, deps),
+        });
     write(ctx.build_dir / "CMakeLists.txt", std::move(gen).build());
 
     const std::string cmd = fmt::format("cmake -B {} -S build -DCMAKE_BUILD_TYPE={} -DCMAKE_EXPORT_COMPILE_COMMANDS=ON "

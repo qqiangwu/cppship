@@ -5,6 +5,7 @@
 #include "cppship/cmake/generator.h"
 #include "cppship/cmd/build.h"
 #include "cppship/cmd/cmake.h"
+#include "cppship/core/resolver.h"
 #include "cppship/util/io.h"
 #include "cppship/util/log.h"
 
@@ -21,8 +22,16 @@ int cmd::run_cmake(const CmakeOptions&)
     conan_setup(ctx);
     conan_install(ctx);
 
+    Resolver resolver(ctx.deps_dir, &ctx.manifest, nullptr);
+    const auto result = std::move(resolver).resolve();
+
     ResolvedDependencies deps = toml::get<ResolvedDependencies>(toml::parse(ctx.dependency_file));
-    CmakeGenerator gen(&ctx.layout, ctx.manifest, deps, { .injector = std::make_unique<CmakeDependencyInjector>() });
+    CmakeGenerator gen(&ctx.layout, ctx.manifest,
+        GeneratorOptions {
+            .deps = cmake::collect_cmake_deps(result.dependencies, deps),
+            .dev_deps = cmake::collect_cmake_deps(result.dev_dependencies, deps),
+            .injector = std::make_unique<CmakeDependencyInjector>(),
+        });
     auto script = std::move(gen).build();
 
     boost::replace_all(script, ctx.root.string(), "${CMAKE_SOURCE_DIR}");
