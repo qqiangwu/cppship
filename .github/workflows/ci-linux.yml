@@ -92,6 +92,7 @@ jobs:
         cppship init . --name app
         test -f .clang-tidy
         test -f .clang-format
+        test -f .gitignore
         cppship build
         cppship run
         cppship test
