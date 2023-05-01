@@ -91,13 +91,13 @@ toml11 = "3.7.1"
 
     const auto& dep1 = deps[0];
     EXPECT_EQ(dep1.package, "boost");
-    ASSERT_TRUE(std::holds_alternative<ConanDep>(dep1.desc));
+    ASSERT_TRUE(dep1.is_conan());
     EXPECT_EQ(get<ConanDep>(dep1.desc).version, "1.81.0");
     EXPECT_EQ(dep1.components, std::vector<std::string> { "headers" });
 
     const auto& dep2 = deps[1];
     EXPECT_EQ(dep2.package, "toml11");
-    ASSERT_TRUE(std::holds_alternative<ConanDep>(dep2.desc));
+    ASSERT_TRUE(dep2.is_conan());
     EXPECT_EQ(get<ConanDep>(dep2.desc).version, "3.7.1");
     EXPECT_TRUE(dep2.components.empty());
 }
@@ -117,7 +117,7 @@ boost = { version = "1.81.0", components = ["headers"], options = { without_stac
     const auto& dep = meta.dependencies().front();
 
     EXPECT_EQ(dep.package, "boost");
-    ASSERT_TRUE(std::holds_alternative<ConanDep>(dep.desc));
+    ASSERT_TRUE(dep.is_conan());
 
     const auto& desc = get<ConanDep>(dep.desc);
     EXPECT_EQ(desc.version, "1.81.0");
@@ -157,11 +157,11 @@ fmt = "9.1.0"
     ranges::sort(deps, std::less<> {}, &DeclaredDependency::package);
 
     EXPECT_EQ(deps[0].package, "boost");
-    ASSERT_TRUE(std::holds_alternative<ConanDep>(deps[0].desc));
+    ASSERT_TRUE(deps[0].is_conan());
     EXPECT_EQ(get<ConanDep>(deps[0].desc).version, "1.81.0");
 
     EXPECT_EQ(deps[1].package, "fmt");
-    ASSERT_TRUE(std::holds_alternative<ConanDep>(deps[1].desc));
+    ASSERT_TRUE(deps[1].is_conan());
     EXPECT_EQ(get<ConanDep>(deps[1].desc).version, "9.1.0");
 }
 
@@ -213,9 +213,9 @@ scope_guard = { git = "https://github.com/Neargye/scope_guard.git", commit = "fa
     ASSERT_EQ(meta.dependencies().size(), 1);
 
     const auto& dep = meta.dependencies()[0];
-    ASSERT_TRUE(std::holds_alternative<GitHeaderOnlyDep>(dep.desc));
+    ASSERT_TRUE(dep.is_git());
 
-    const auto& desc = get<GitHeaderOnlyDep>(dep.desc);
+    const auto& desc = get<GitDep>(dep.desc);
     EXPECT_EQ(desc.git, "https://github.com/Neargye/scope_guard.git");
     EXPECT_EQ(desc.commit, "fa60305b5805dcd872b3c60d0bc517c505f99502");
 

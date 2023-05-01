@@ -267,7 +267,7 @@ void inject_git_deps(std::ostream& out, const std::vector<DeclaredDependency>& d
     oss.print("include(FetchContent)\n\n");
 
     for (const auto& dep : deps) {
-        const auto& desc = get<GitHeaderOnlyDep>(dep.desc);
+        const auto& desc = get<GitDep>(dep.desc);
 
         oss.print(R"(# Dep for {package}
 FetchContent_Declare({package}
@@ -309,10 +309,8 @@ void CmakeDependencyInjector::inject(std::ostream& out, const Manifest& manifest
         return;
     }
 
-    const auto has_conan_deps
-        = any_of(deps, [](const DeclaredDependency& dep) { return std::holds_alternative<ConanDep>(dep.desc); });
-    const auto has_git_deps = any_of(
-        deps, [](const DeclaredDependency& dep) { return std::holds_alternative<GitHeaderOnlyDep>(dep.desc); });
+    const auto has_conan_deps = any_of(deps, [](const DeclaredDependency& dep) { return dep.is_conan(); });
+    const auto has_git_deps = any_of(deps, [](const DeclaredDependency& dep) { return dep.is_git(); });
 
     out << "\n# Dependency management\n";
     if (has_conan_deps) {
@@ -321,7 +319,7 @@ void CmakeDependencyInjector::inject(std::ostream& out, const Manifest& manifest
 
     if (has_git_deps) {
         inject_git_deps(out, deps | filter([](const DeclaredDependency& dep) {
-            return std::holds_alternative<GitHeaderOnlyDep>(dep.desc);
+            return dep.is_git();
         }) | ranges::to<std::vector<DeclaredDependency>>());
     }
 }

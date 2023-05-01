@@ -65,7 +65,7 @@ std::vector<DeclaredDependency> parse_dependencis(const toml::value& manifest, c
             pkg.desc = ConanDep { .version = dep.as_string() };
         } else if (dep.is_table()) {
             if (dep.contains("git")) {
-                GitHeaderOnlyDep desc;
+                GitDep desc;
                 desc.git = find<std::string>(dep, "git");
                 desc.commit = find_or<std::string>(dep, "commit", "");
                 if (desc.git.empty()) {

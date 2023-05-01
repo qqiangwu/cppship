@@ -19,17 +19,21 @@ struct ConanDep {
     std::unordered_map<std::string, std::string> options;
 };
 
-struct GitHeaderOnlyDep {
+struct GitDep {
     std::string git;
     std::string commit;
 };
 
-using DependencyDesc = std::variant<ConanDep, GitHeaderOnlyDep>;
+using DependencyDesc = std::variant<ConanDep, GitDep>;
 
 struct DeclaredDependency {
     std::string package;
     std::vector<std::string> components;
     DependencyDesc desc;
+
+    bool is_conan() const { return std::holds_alternative<ConanDep>(desc); }
+
+    bool is_git() const { return std::holds_alternative<GitDep>(desc); }
 };
 
 enum class CxxStd { cxx11 = 11, cxx14 = 14, cxx17 = 17, cxx20 = 20, cxx23 = 23 };
