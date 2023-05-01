@@ -1,6 +1,8 @@
 #include <cstdlib>
 
 #include <boost/algorithm/string/replace.hpp>
+#include <range/v3/range/conversion.hpp>
+#include <range/v3/view/concat.hpp>
 
 #include "cppship/cmake/generator.h"
 #include "cppship/cmd/build.h"
@@ -11,6 +13,7 @@
 
 using namespace cppship;
 using namespace cppship::cmake;
+using namespace ranges::views;
 
 int cmd::run_cmake(const CmakeOptions&)
 {
@@ -26,11 +29,14 @@ int cmd::run_cmake(const CmakeOptions&)
     const auto result = std::move(resolver).resolve();
 
     ResolvedDependencies deps = toml::get<ResolvedDependencies>(toml::parse(ctx.dependency_file));
+    const auto declared_deps
+        = concat(result.dependencies, result.dev_dependencies) | ranges::to<std::vector<DeclaredDependency>>();
     CmakeGenerator gen(&ctx.layout, ctx.manifest,
         GeneratorOptions {
             .deps = cmake::collect_cmake_deps(result.dependencies, deps),
             .dev_deps = cmake::collect_cmake_deps(result.dev_dependencies, deps),
-            .injector = std::make_unique<CmakeDependencyInjector>(),
+            .injector = std::make_unique<CmakeDependencyInjector>(
+                ctx.deps_dir, declared_deps, result.resolved_dependencies, deps),
         });
     auto script = std::move(gen).build();
 
