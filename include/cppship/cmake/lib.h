@@ -12,6 +12,7 @@ namespace cppship::cmake {
 
 struct LibDesc {
     std::string name;
+    std::optional<std::string> name_alias;
     std::set<fs::path> include_dirs;
     std::set<fs::path> sources;
     std::vector<Dep> deps;
@@ -30,6 +31,7 @@ public:
 
 private:
     std::string mName;
+    std::optional<std::string> mNameAlias;
     std::set<std::string> mIncludes;
     std::set<std::string> mSources;
     std::vector<Dep> mDeps;

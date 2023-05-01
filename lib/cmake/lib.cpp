@@ -21,6 +21,7 @@ std::set<std::string> to_strings(const std::set<fs::path>& paths)
 
 CmakeLib::CmakeLib(LibDesc desc)
     : mName(std::move(desc.name))
+    , mNameAlias(std::move(desc.name_alias))
     , mIncludes(to_strings(desc.include_dirs))
     , mSources(to_strings(desc.sources))
     , mDeps(desc.deps)
@@ -38,7 +39,10 @@ void CmakeLib::build(std::ostream& out) const
     } else {
         out << fmt::format("add_library({} {})\n", lib_name, boost::join(mSources, "\n"));
     }
-    out << fmt::format(R"(set_target_properties({} PROPERTIES OUTPUT_NAME "{}"))", lib_name, mName) << '\n';
+
+    if (mNameAlias) {
+        out << fmt::format(R"(set_target_properties({} PROPERTIES OUTPUT_NAME "{}"))", lib_name, *mNameAlias) << '\n';
+    }
 
     const std::string_view lib_type = is_interface() ? "INTERFACE" : "PUBLIC";
     if (!mIncludes.empty()) {

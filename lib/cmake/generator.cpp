@@ -167,6 +167,7 @@ void CmakeGenerator::add_lib_sources_()
 
     cmake::CmakeLib lib({
         .name = target->name,
+        .name_alias = target->name,
         .include_dirs = target->includes,
         .sources = target->sources,
         .deps = mDeps,

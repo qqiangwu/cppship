@@ -28,7 +28,6 @@ TEST(lib, Interface)
         fmt::format(R"(
 # LIB
 add_library(test_lib INTERFACE)
-set_target_properties(test_lib PROPERTIES OUTPUT_NAME "test")
 
 target_include_directories(test_lib INTERFACE {})
 
@@ -53,6 +52,45 @@ TEST(lib, Source)
 
     CmakeLib lib({
         .name = "test",
+        .include_dirs = { incdir },
+        .sources = { libdir / "a.cpp", libdir / "b.cpp" },
+        .deps = { { .cmake_package = "pkg", .cmake_targets = { "pkg1", "pkg2" } } },
+        .definitions = { "A", "B" },
+    });
+
+    std::ostringstream oss;
+    lib.build(oss);
+
+    EXPECT_EQ(oss.str(),
+        fmt::format(R"(
+# LIB
+add_library(test_lib {0}/a.cpp
+{0}/b.cpp)
+
+target_include_directories(test_lib PUBLIC {1})
+
+target_link_libraries(test_lib PUBLIC pkg1 pkg2)
+
+target_compile_definitions(test_lib PUBLIC A B)
+)",
+            libdir.string(), incdir.string()));
+}
+
+TEST(lib, Alias)
+{
+    const auto dir = fs::temp_directory_path();
+    const auto incdir = dir / kIncludePath;
+    fs::create_directory(incdir);
+
+    const auto libdir = dir / kLibPath;
+    fs::remove_all(libdir);
+    fs::create_directory(libdir);
+    write(libdir / "a.cpp", "");
+    write(libdir / "b.cpp", "");
+
+    CmakeLib lib({
+        .name = "test",
+        .name_alias = "test",
         .include_dirs = { incdir },
         .sources = { libdir / "a.cpp", libdir / "b.cpp" },
         .deps = { { .cmake_package = "pkg", .cmake_targets = { "pkg1", "pkg2" } } },

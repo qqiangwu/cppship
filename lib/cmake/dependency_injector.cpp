@@ -8,7 +8,6 @@
 #include <fmt/format.h>
 #include <fmt/os.h>
 #include <range/v3/range/conversion.hpp>
-#include <range/v3/view/concat.hpp>
 #include <range/v3/view/filter.hpp>
 
 using namespace cppship;
@@ -266,6 +265,8 @@ void inject_git_deps(std::ostream& out, const fs::path& deps_dir, const std::vec
     const fs::path cmake_util_dir = "cmake";
     create_if_not_exist(cmake_util_dir);
 
+    static constexpr std::string_view kCmakeDepsDir = "${CMAKE_BINARY_DIR}/deps";
+
     auto oss = fmt::output_file((cmake_util_dir / "deps.cmake").string());
     oss.print("include(FetchContent)\n\n");
 
@@ -282,8 +283,7 @@ FetchContent_MakeAvailable({package})
 message("-- Deps: download {package} from {git}::{commit}")
 
 )",
-            "package"_a = dep.package, "git"_a = desc.git, "commit"_a = desc.commit,
-            "deps_dir"_a = "${CMAKE_BINARY_DIR}/deps");
+            "package"_a = dep.package, "git"_a = desc.git, "commit"_a = desc.commit, "deps_dir"_a = kCmakeDepsDir);
     }
 
     // commit file
@@ -291,13 +291,13 @@ message("-- Deps: download {package} from {git}::{commit}")
     oss.print("\n");
     oss.close();
 
-    auto content_fix = [deps_dir = deps_dir.string()](
-                           std::string& str) { boost::replace_all(str, deps_dir, "${CMAKE_BINARY_DIR}/deps"); };
+    auto content_fix
+        = [deps_dir = deps_dir.string()](std::string& str) { boost::replace_all(str, deps_dir, kCmakeDepsDir); };
     cmake::config_packages(cppship_deps, all_deps,
         {
             .deps_dir = deps_dir,
             .out_dir = cmake_util_dir,
-            .cmake_deps_dir = "${CMAKE_BINARY_DIR}/deps",
+            .cmake_deps_dir = std::string { kCmakeDepsDir },
             .post_process = std::move(content_fix),
         });
 

@@ -4,37 +4,15 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
-#include <variant>
 #include <vector>
 
 #include <fmt/format.h>
 
+#include "cppship/core/dependency.h"
 #include "cppship/core/profile.h"
 #include "cppship/util/fs.h"
 
 namespace cppship {
-
-struct ConanDep {
-    std::string version;
-    std::unordered_map<std::string, std::string> options;
-};
-
-struct GitDep {
-    std::string git;
-    std::string commit;
-};
-
-using DependencyDesc = std::variant<ConanDep, GitDep>;
-
-struct DeclaredDependency {
-    std::string package;
-    std::vector<std::string> components;
-    DependencyDesc desc;
-
-    bool is_conan() const { return std::holds_alternative<ConanDep>(desc); }
-
-    bool is_git() const { return std::holds_alternative<GitDep>(desc); }
-};
 
 enum class CxxStd { cxx11 = 11, cxx14 = 14, cxx17 = 17, cxx20 = 20, cxx23 = 23 };
 
