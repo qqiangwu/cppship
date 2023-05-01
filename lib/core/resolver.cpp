@@ -50,14 +50,12 @@ cppship::ResolveResult Resolver::resolve() &&
         const auto dep = std::move(mUnresolved.front());
         mUnresolved.pop();
 
-        if (mPackageSeen.contains(dep.package)) {
+        if (const bool existed = !mPackageSeen.insert(dep.package).second) {
             status("resolve", "package {} already seen, skip", dep.package);
             continue;
         }
 
         do_resolve_(dep);
-
-        mPackageSeen.insert(dep.package);
     }
 
     ranges::push_back(mResult.dependencies, mResult.conan_dependencies);
@@ -90,7 +88,7 @@ void verify_git_dependency(const std::string_view package, const fs::path& dep_d
 
 void Resolver::do_resolve_(const DeclaredDependency& dep)
 {
-    const auto& desc = get<GitHeaderOnlyDep>(dep.desc);
+    const auto& desc = get<GitDep>(dep.desc);
     const auto package_dir = mDepsDir / dep.package;
     const auto footprint = fmt::format("{}/cppship.{}", package_dir.string(), desc.commit);
     if (!fs::exists(footprint) && mFetcher) {
@@ -135,7 +133,7 @@ void Resolver::resolve_package_(std::string_view package, const fs::path& packag
             continue;
         }
 
-        if (std::holds_alternative<ConanDep>(sub_dep.desc)) {
+        if (sub_dep.is_conan()) {
             mPackageSeen.insert(sub_dep.package);
             mResult.conan_dependencies.push_back(sub_dep);
             continue;
