@@ -1,8 +1,10 @@
 #include "cppship/cmake/dependency_injector.h"
+#include "cppship/cmake/package_configurer.h"
 #include "cppship/util/fs.h"
 #include "cppship/util/io.h"
 
 #include <boost/algorithm/cxx11/any_of.hpp>
+#include <boost/algorithm/string/replace.hpp>
 #include <fmt/format.h>
 #include <fmt/os.h>
 #include <range/v3/range/conversion.hpp>
@@ -258,7 +260,8 @@ void inject_conan_deps(std::ostream& out)
     out << "include(cmake/conan.cmake)\n";
 }
 
-void inject_git_deps(std::ostream& out, const std::vector<DeclaredDependency>& deps)
+void inject_git_deps(std::ostream& out, const fs::path& deps_dir, const std::vector<DeclaredDependency>& deps,
+    const ResolvedDependencies& cppship_deps, const ResolvedDependencies& all_deps)
 {
     const fs::path cmake_util_dir = "cmake";
     create_if_not_exist(cmake_util_dir);
@@ -276,7 +279,7 @@ FetchContent_Declare({package}
     SOURCE_DIR "{deps_dir}/{package}"
 )
 FetchContent_MakeAvailable({package})
-message("-- Deps: download {package} from {git}:{commit}")
+message("-- Deps: download {package} from {git}::{commit}")
 
 )",
             "package"_a = dep.package, "git"_a = desc.git, "commit"_a = desc.commit,
@@ -288,38 +291,38 @@ message("-- Deps: download {package} from {git}:{commit}")
     oss.print("\n");
     oss.close();
 
-    for (const auto& dep : deps) {
-        write(cmake_util_dir / fmt::format("{}-config.cmake", dep.package),
-            fmt::format(R"(# export {package}
-add_library(cppship::{package} INTERFACE IMPORTED)
-target_include_directories(cppship::{package} INTERFACE ${{CMAKE_BINARY_DIR}}/deps/{package}/include)
-)",
-                "package"_a = dep.package));
-    }
+    auto content_fix = [deps_dir = deps_dir.string()](
+                           std::string& str) { boost::replace_all(str, deps_dir, "${CMAKE_BINARY_DIR}/deps"); };
+    cmake::config_packages(cppship_deps, all_deps,
+        {
+            .deps_dir = deps_dir,
+            .out_dir = cmake_util_dir,
+            .cmake_deps_dir = "${CMAKE_BINARY_DIR}/deps",
+            .post_process = std::move(content_fix),
+        });
 
     out << "include(cmake/deps.cmake)\n";
 }
 
 }
 
-void CmakeDependencyInjector::inject(std::ostream& out, const Manifest& manifest)
+void CmakeDependencyInjector::inject(std::ostream& out, const Manifest&)
 {
-    const auto deps = concat(manifest.dependencies(), manifest.dev_dependencies());
-    if (deps.empty()) {
+    if (mDeclaredDeps.empty()) {
         return;
     }
 
-    const auto has_conan_deps = any_of(deps, [](const DeclaredDependency& dep) { return dep.is_conan(); });
-    const auto has_git_deps = any_of(deps, [](const DeclaredDependency& dep) { return dep.is_git(); });
+    const auto has_conan_deps = any_of(mDeclaredDeps, [](const DeclaredDependency& dep) { return dep.is_conan(); });
 
     out << "\n# Dependency management\n";
     if (has_conan_deps) {
         inject_conan_deps(out);
     }
 
-    if (has_git_deps) {
-        inject_git_deps(out, deps | filter([](const DeclaredDependency& dep) {
-            return dep.is_git();
-        }) | ranges::to<std::vector<DeclaredDependency>>());
+    if (!mCppshipDeps.empty()) {
+        const auto declared_cppship_deps = mDeclaredDeps
+            | filter([](const DeclaredDependency& dep) { return dep.is_git(); })
+            | ranges::to<std::vector<DeclaredDependency>>();
+        inject_git_deps(out, mDepsDir, declared_cppship_deps, mCppshipDeps, mAllDeps);
     }
 }

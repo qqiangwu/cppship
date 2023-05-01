@@ -50,7 +50,7 @@ cppship::ResolveResult Resolver::resolve() &&
         const auto dep = std::move(mUnresolved.front());
         mUnresolved.pop();
 
-        if (const bool existed = !mPackageSeen.insert(dep.package).second) {
+        if (const bool existed = !mPackageSeen.insert(dep.package).second; existed) {
             status("resolve", "package {} already seen, skip", dep.package);
             continue;
         }
