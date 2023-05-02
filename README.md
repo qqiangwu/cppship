@@ -38,18 +38,9 @@ cmake --build build -j8 --target install
 ```
 
 ## Cppship
-We can also to use cppship to build `cppship`
+We can also use cppship to build `cppship`
 
 ```bash
-# debug build
-cppship build
-
-# release build
-cppship build -r
-
-# test
-cppship test
-
 # install
 cppship install
 ```
