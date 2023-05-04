@@ -9,8 +9,29 @@ A cargo-like modern cpp build tools, aimed to combine all existing best practice
   + you can also directly declare a cppship lib on git as a dependency
   + we will not support import arbitrary libs on git since it will make our package less composable
 + build: [cmake](https://cmake.org/)
+  + Cppship use cmake as the underlying build tool
+  + You can also run `cppship cmake` to convert a cppship project to CMake project
 + tests: google test
 + benches: google bench
++ format: clang-format
++ lint: clang-tidy
+
+# Goals
++ Super easy to start a new project without any googling and boilerplate code
++ Super easy to use a thirdparty package
++ Packages can be composed arbitrarily
++ Newbees can create a standard project easily, including tests, benchmarks, examples, documents, format, lint
++ Do simple things simple, but reserve mechanism for hard things
+
+The above goals are achieved by the following features:
+
++ Use `cppship init <name>` or `cppship init --lib <name>` to start a new project
++ Use `conan2` to import dependencies
+  + You can also import a header-only package on git or a cppship package on git
+  + Git-based dependencies are not stable, and is subject to change
++ Cppship packages can import other cppship packages as dependencies (not stable now)
++ Creating a test, benchmark, example only involves a single file creation
++ Project structure are standardized, by default you only need to create cpp files and `cppship run` or `cppship test` or `cppship bench` without any configuration or boilerplate code
 
 # Demo
 ![demo](https://user-images.githubusercontent.com/2892107/232242145-bcc4bb3f-21c0-41a6-919a-9b5f5b196246.gif)
@@ -268,3 +289,6 @@ cppship lint -a
 # lint against commit
 cppship lint -c <commit>
 ```
+
+# Integration with VSCode
+Now cppship has no extensions for VSCode, but use `clangd` is enough. Just write your project and run `cppship build -d`, which will create  `build/compile_commands.json`. Clangd will find it and do its work.
