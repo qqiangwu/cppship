@@ -16,6 +16,8 @@ A cargo-like modern cpp build tools, aimed to combine all existing best practice
 + format: clang-format
 + lint: clang-tidy
 
+Further details can be found in [wiki](https://github.com/qqiangwu/cppship/wiki)
+
 # Goals
 + Super easy to start a new project without any googling and boilerplate code
 + Super easy to use a thirdparty package
