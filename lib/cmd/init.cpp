@@ -15,7 +15,7 @@ int cmd::run_init(const InitOptions& options)
         throw Error { "--bin and --lib cannot co-exist" };
     }
 
-    const std::string name = options.name.value_or(options.dir.filename());
+    const std::string name = options.name.value_or(options.dir.filename().string());
     generate_manifest(name, options.std, options.dir);
 
     if (options.lib) {

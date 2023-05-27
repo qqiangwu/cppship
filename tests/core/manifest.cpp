@@ -73,7 +73,7 @@ version = "0.1.0"
 [dependencies]
 )");
 
-    EXPECT_TRUE(meta.dependencies().empty());
+    ASSERT_TRUE(meta.dependencies().empty());
 
     meta = mock_manifest(R"([package]
 name = "abc"
@@ -266,7 +266,7 @@ version = "0.1.0"
     )");
 
     auto prof = meta.profile(Profile::debug);
-    EXPECT_EQ(prof.cxxflags, "-g");
+    EXPECT_EQ(prof.cxxflags, "");
     ASSERT_TRUE(prof.definitions.empty());
 
     meta = mock_manifest(R"([package]
@@ -295,7 +295,7 @@ version = "0.1.0"
     )");
 
     auto prof = meta.profile(Profile::release);
-    EXPECT_EQ(prof.cxxflags, "-O3 -DNDEBUG");
+    EXPECT_EQ(prof.cxxflags, "");
     ASSERT_TRUE(prof.definitions.empty());
 
     meta = mock_manifest(R"([package]
@@ -314,4 +314,32 @@ definitions = ["A", "B"]
     ranges::sort(prof.definitions);
     EXPECT_EQ(prof.definitions[0], "A");
     EXPECT_EQ(prof.definitions[1], "B");
+}
+
+TEST(manifest, ProfileCfg)
+{
+    auto meta = mock_manifest(R"([package]
+name = "abc"
+version = "0.1.0"
+
+[profile.'cfg(not(compiler = "msvc"))']
+cxxflags = "-Wall"
+
+[profile.'cfg(compiler = "msvc")']
+cxxflags = "/MP"
+definitions = ["A"]
+    )");
+
+    auto prof = meta.default_profile();
+    EXPECT_EQ(prof.cxxflags, "");
+    ASSERT_TRUE(prof.definitions.empty());
+    ASSERT_TRUE(prof.config.contains(ProfileCondition::msvc));
+    ASSERT_TRUE(prof.config.contains(ProfileCondition::non_msvc));
+
+    EXPECT_EQ(prof.config[ProfileCondition::msvc].cxxflags, "/MP");
+    EXPECT_EQ(prof.config[ProfileCondition::msvc].definitions.size(), 1);
+    EXPECT_EQ(prof.config[ProfileCondition::msvc].definitions[0], "A");
+
+    EXPECT_EQ(prof.config[ProfileCondition::non_msvc].cxxflags, "-Wall");
+    EXPECT_EQ(prof.config[ProfileCondition::non_msvc].definitions.size(), 0);
 }

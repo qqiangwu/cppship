@@ -5,10 +5,12 @@
 #include <gsl/narrow>
 #include <spdlog/spdlog.h>
 
+#include "cppship/cmake/msvc.h"
 #include "cppship/cmake/naming.h"
 #include "cppship/cmd/build.h"
 #include "cppship/cmd/run.h"
 #include "cppship/core/manifest.h"
+#include "cppship/util/cmd.h"
 #include "cppship/util/fs.h"
 #include "cppship/util/log.h"
 #include "cppship/util/repo.h"
@@ -68,10 +70,11 @@ int cmd::run_run(const RunOptions& options)
         return EXIT_FAILURE;
     }
 
-    const auto bin_file = options.example ? ctx.profile_dir / kExamplesPath / bin : ctx.profile_dir / bin;
-    if (!fs::exists(bin_file)) {
-        warn("no binary to run: {}", bin_file.string());
-        return EXIT_SUCCESS;
+    const fs::path fixed_bin = msvc::fix_bin(ctx, bin);
+    const auto bin_file = options.example ? ctx.profile_dir / kExamplesPath / fixed_bin : ctx.profile_dir / fixed_bin;
+    if (!has_cmd(bin_file.string())) {
+        error("no binary to run: {}", bin_file.string());
+        return EXIT_FAILURE;
     }
 
     const auto cmd = fmt::format("{} {}", bin_file.string(), options.args);

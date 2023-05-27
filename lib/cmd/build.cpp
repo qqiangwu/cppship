@@ -9,6 +9,7 @@
 #include "cppship/util/cmd.h"
 #include "cppship/util/fs.h"
 #include "cppship/util/git.h"
+#include "cppship/util/io.h"
 #include "cppship/util/log.h"
 #include "cppship/util/repo.h"
 
@@ -18,6 +19,7 @@
 #include <string>
 
 #include <boost/algorithm/string/find.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <fmt/format.h>
 #include <gsl/util>
@@ -215,8 +217,8 @@ void cmd::cmake_setup(const BuildContext& ctx)
     const auto& inventory_file = ctx.inventory_file;
 
     const auto all_files = ctx.layout.all_files();
-    const auto files = all_files | rng::transform([](const auto& file) { return file.string(); })
-        | ranges::to<std::set<std::string>>();
+    const auto files
+        = all_files | rng::transform([](const auto& file) { return file.string(); }) | ranges::to<std::set>();
     if (fs::exists(inventory_file)) {
         const auto saved_inventory = toml::parse(inventory_file);
         const auto saved = saved_inventory.at("files").as_array()
@@ -291,7 +293,8 @@ std::string_view to_cmake_group(cmd::BuildGroup group, const std::string_view li
 
 int cmd::cmake_build(const BuildContext& ctx, const BuildOptions& options)
 {
-    auto cmd = fmt::format("cmake --build {} -j {}", ctx.profile_dir.string(), options.max_concurrency);
+    auto cmd = fmt::format("cmake --build {} -j {} --config {}", ctx.profile_dir.string(), options.max_concurrency,
+        to_string(options.profile));
     if (options.target) {
         cmd += fmt::format(" --target {}", *options.target);
     } else if (options.groups.empty()) {

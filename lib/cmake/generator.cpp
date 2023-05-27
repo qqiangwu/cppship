@@ -7,8 +7,9 @@
 #include "cppship/core/manifest.h"
 #include "cppship/exception.h"
 #include "cppship/util/log.h"
+#include "cppship/util/string.h"
 
-#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/join.hpp>
 #include <fmt/core.h>
 #include <fmt/format.h>
 #include <range/v3/action/push_back.hpp>
@@ -91,7 +92,7 @@ std::string CmakeGenerator::build() &&
 
 void CmakeGenerator::emit_header_()
 {
-    mOut << "cmake_minimum_required(VERSION 3.16)\n"
+    mOut << "cmake_minimum_required(VERSION 3.17)\n"
          << fmt::format("project({} VERSION {})\n", mName, mManifest.version()) << R"(
 include(CTest)
 enable_testing()
@@ -99,9 +100,30 @@ enable_testing()
 )";
 
     const auto& default_profile = mManifest.default_profile();
-    if (!default_profile.cxxflags.empty()) {
+    if (!default_profile.cxxflags.empty() || !default_profile.definitions.empty()) {
         mOut << "# cpp options\n";
         mOut << fmt::format("add_compile_options({})\n", default_profile.cxxflags);
+        mOut << fmt::format("add_compile_definitions({})\n", boost::join(default_profile.definitions, " "));
+
+        if (auto conf = default_profile.config.find(ProfileCondition::msvc); conf != default_profile.config.end()) {
+            mOut << fmt::format(R"(
+if(MSVC)
+    add_compile_options({})
+    add_compile_definitions({})
+endif()
+)",
+                conf->second.cxxflags, boost::join(conf->second.definitions, " "));
+        }
+
+        if (auto conf = default_profile.config.find(ProfileCondition::non_msvc); conf != default_profile.config.end()) {
+            mOut << fmt::format(R"(
+if(NOT MSVC)
+    add_compile_options({})
+    add_compile_definitions({})
+endif()
+)",
+                conf->second.cxxflags, boost::join(conf->second.definitions, " "));
+        }
     }
 
     mOut << "\n# profile cpp options\n";
@@ -309,7 +331,7 @@ find_package(GTest REQUIRED)
         const auto target = mapper.test(test.name);
 
         mOut << '\n'
-             << fmt::format("add_executable({} {})\n", target, test.sources.begin()->string())
+             << fmt::format("add_executable({} {})\n", target, test.sources.begin()->generic_string())
              << fmt::format("target_link_libraries({} PRIVATE GTest::gtest_main)\n", target);
 
         if (mLib) {
@@ -349,9 +371,11 @@ void CmakeGenerator::fill_profile_(Profile profile)
     const auto& options = mManifest.profile(profile);
     const auto& profile_str = to_string(profile);
 
-    std::vector<std::string> cxxflags;
+    for (const auto& opt : util::split(options.cxxflags, boost::is_space())) {
+        if (opt.empty()) {
+            continue;
+        }
 
-    for (const auto& opt : boost::split(cxxflags, options.cxxflags, boost::is_any_of(" "))) {
         mOut << fmt::format("add_compile_options($<$<CONFIG:{}>:{}>)\n", profile_str, opt);
     }
     for (const auto& def : options.definitions) {

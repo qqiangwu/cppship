@@ -291,8 +291,8 @@ message("-- Deps: download {package} from {git}::{commit}")
     oss.print("\n");
     oss.close();
 
-    auto content_fix
-        = [deps_dir = deps_dir.string()](std::string& str) { boost::replace_all(str, deps_dir, kCmakeDepsDir); };
+    auto content_fix = [deps_dir = deps_dir.generic_string()](
+                           std::string& str) { boost::replace_all(str, deps_dir, kCmakeDepsDir); };
     cmake::config_packages(cppship_deps, all_deps,
         {
             .deps_dir = deps_dir,
@@ -319,10 +319,11 @@ void CmakeDependencyInjector::inject(std::ostream& out, const Manifest&)
         inject_conan_deps(out);
     }
 
-    if (!mCppshipDeps.empty()) {
-        const auto declared_cppship_deps = mDeclaredDeps
-            | filter([](const DeclaredDependency& dep) { return dep.is_git(); })
-            | ranges::to<std::vector<DeclaredDependency>>();
-        inject_git_deps(out, mDepsDir, declared_cppship_deps, mCppshipDeps, mAllDeps);
+    if (mCppshipDeps.empty()) {
+        return;
     }
+
+    const auto declared_cppship_deps = mDeclaredDeps
+        | filter([](const DeclaredDependency& dep) { return dep.is_git(); }) | ranges::to<std::vector>();
+    inject_git_deps(out, mDepsDir, declared_cppship_deps, mCppshipDeps, mAllDeps);
 }

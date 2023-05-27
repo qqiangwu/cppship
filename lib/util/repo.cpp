@@ -12,6 +12,7 @@
 #include "cppship/exception.h"
 #include "cppship/util/cmd.h"
 #include "cppship/util/fs.h"
+#include "cppship/util/string.h"
 
 using namespace cppship;
 using namespace ranges;
@@ -117,12 +118,11 @@ std::set<fs::path> cppship::list_changed_files(const ListOptions& options)
     const auto cmd = fmt::format("git diff {} --name-only {}", options.commit, (options.cached_only ? "--cached" : ""));
     const auto out = check_output(cmd);
 
-    std::set<std::string> lines;
-    boost::split(lines, out, boost::is_any_of("\n"));
+    const auto lines = util::split(out, boost::is_any_of("\n"));
 
     return lines | views::filter([](std::string_view line) { return !line.empty(); })
         | views::transform(
             [root = root.string()](std::string_view line) { return fs::path(fmt::format("{}/{}", root, line)); })
         | views::filter([](const fs::path& path) { return ranges::contains(kSourceExtension, path.extension()); })
-        | views::filter([](const fs::path& path) { return fs::exists(path); }) | to<std::set<fs::path>>();
+        | views::filter([](const fs::path& path) { return fs::exists(path); }) | to<std::set>();
 }

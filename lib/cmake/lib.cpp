@@ -14,7 +14,7 @@ namespace {
 
 std::set<std::string> to_strings(const std::set<fs::path>& paths)
 {
-    return paths | transform([](const fs::path& path) { return path.string(); }) | ranges::to<std::set<std::string>>();
+    return paths | transform([](const fs::path& path) { return path.generic_string(); }) | ranges::to<std::set>();
 }
 
 }

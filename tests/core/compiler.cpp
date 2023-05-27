@@ -10,9 +10,11 @@ TEST(compiler, to_string)
     ASSERT_EQ(to_string(CompilerId::apple_clang), "apple-clang");
     ASSERT_EQ(to_string(CompilerId::clang), "clang");
     ASSERT_EQ(to_string(CompilerId::gcc), "gcc");
+    ASSERT_EQ(to_string(CompilerId::msvc), "msvc");
     ASSERT_EQ(to_string(CompilerId::unknown), "unknown");
 }
 
+#ifndef _WINDOWS
 TEST(compiler, detect)
 {
     CompilerInfo info;
@@ -22,3 +24,4 @@ TEST(compiler, detect)
     ASSERT_NE(info.libcxx(), "");
     ASSERT_NE(info.version(), 0);
 }
+#endif
