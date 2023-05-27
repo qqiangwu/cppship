@@ -36,13 +36,17 @@ public:
 
     ~DirTree()
     {
-        fs::remove_all(mRoot);
         fs::current_path(mOriPath);
+        fs::remove_all(mRoot);
     }
 
     const fs::path& root() const { return mRoot; }
 
-    std::string relative(const fs::path& path) { return path.lexically_relative(mRoot).string(); }
+    std::string relative(const fs::path& path)
+    {
+        // use generic_string to deal with windows
+        return path.lexically_relative(mRoot).generic_string();
+    }
 
 private:
     fs::path mRoot = fs::temp_directory_path() / "cppship.test";
@@ -107,7 +111,7 @@ TEST(layout, bin)
     EXPECT_EQ(target->sources.size(), 3);
 
     const auto app_sources = target->sources | transform([&tree](const fs::path& path) { return tree.relative(path); })
-        | ranges::to<std::set<std::string>>();
+        | ranges::to<std::set>();
     EXPECT_TRUE(app_sources.contains("src/main.cpp"));
     EXPECT_TRUE(app_sources.contains("src/a.cpp"));
     EXPECT_TRUE(app_sources.contains("src/sub/a.cpp"));
@@ -239,15 +243,16 @@ TEST(layout, tests)
     });
 
     Layout layout(tree.root(), kApp);
-    EXPECT_TRUE(!layout.lib());
-    EXPECT_EQ(layout.all_files().size(), 3);
+    ASSERT_TRUE(!layout.lib());
+    ASSERT_EQ(layout.all_files().size(), 3);
     EXPECT_TRUE(layout.benches().empty());
     EXPECT_TRUE(layout.examples().empty());
     EXPECT_TRUE(layout.binaries().empty());
-    EXPECT_EQ(layout.tests().size(), 3);
+    ASSERT_EQ(layout.tests().size(), 3);
 
     for (const char* name : { "a", "b" }) {
         const auto target = layout.test(name);
+        ASSERT_TRUE(target);
         EXPECT_EQ(target->name, name);
         EXPECT_TRUE(target->includes.empty());
         EXPECT_EQ(target->sources.size(), 1);
@@ -255,9 +260,10 @@ TEST(layout, tests)
     }
 
     const auto target = layout.test("sub_a");
+    ASSERT_TRUE(target);
     EXPECT_EQ(target->name, "sub_a");
     EXPECT_TRUE(target->includes.empty());
-    EXPECT_EQ(target->sources.size(), 1);
+    ASSERT_EQ(target->sources.size(), 1);
     EXPECT_EQ(tree.relative(*target->sources.begin()), "tests/sub/a.cpp");
 }
 
@@ -279,6 +285,7 @@ TEST(layout, inner_test)
 
     for (const char* name : { "a", "b" }) {
         const auto target = layout.test(name);
+        ASSERT_TRUE(target);
         EXPECT_EQ(target->name, name);
         EXPECT_TRUE(target->includes.empty());
         EXPECT_EQ(target->sources.size(), 1);
@@ -286,6 +293,7 @@ TEST(layout, inner_test)
     }
 
     const auto target = layout.test("sub_a");
+    ASSERT_TRUE(target);
     EXPECT_EQ(target->name, "sub_a");
     EXPECT_TRUE(target->includes.empty());
     EXPECT_EQ(target->sources.size(), 1);
@@ -326,7 +334,7 @@ TEST(layout, lib)
     EXPECT_EQ(lib.sources.size(), 3);
 
     const auto lib_sources = lib.sources | transform([&tree](const fs::path& path) { return tree.relative(path); })
-        | ranges::to<std::set<std::string>>();
+        | ranges::to<std::set>();
     EXPECT_TRUE(lib_sources.contains("lib/a.cpp"));
     EXPECT_TRUE(lib_sources.contains("lib/b.cpp"));
     EXPECT_TRUE(lib_sources.contains("lib/sub/a.cpp"));
@@ -355,7 +363,7 @@ TEST(layout, src_only_lib)
     EXPECT_EQ(lib.sources.size(), 3);
 
     const auto lib_sources = lib.sources | transform([&tree](const fs::path& path) { return tree.relative(path); })
-        | ranges::to<std::set<std::string>>();
+        | ranges::to<std::set>();
     EXPECT_TRUE(lib_sources.contains("lib/a.cpp"));
     EXPECT_TRUE(lib_sources.contains("lib/b.cpp"));
     EXPECT_TRUE(lib_sources.contains("lib/sub/a.cpp"));
@@ -408,7 +416,7 @@ TEST(layout, lib_test_max)
     EXPECT_EQ(lib.sources.size(), 3);
 
     const auto lib_sources = lib.sources | transform([&tree](const fs::path& path) { return tree.relative(path); })
-        | ranges::to<std::set<std::string>>();
+        | ranges::to<std::set>();
     EXPECT_TRUE(lib_sources.contains("lib/a.cpp"));
     EXPECT_TRUE(lib_sources.contains("lib/b.cpp"));
     EXPECT_TRUE(lib_sources.contains("lib/sub/a.cpp"));

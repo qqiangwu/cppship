@@ -1,5 +1,7 @@
 #pragma once
 
+#include <map>
+#include <set>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -50,9 +52,22 @@ inline Profile parse_profile(std::string profile)
     throw InvalidProfile {};
 }
 
+enum class ProfileCondition {
+    msvc,
+    non_msvc,
+};
+
+struct ProfileConfig {
+    std::string cxxflags;
+    std::vector<std::string> definitions;
+};
+
 struct ProfileOptions {
     std::string cxxflags;
     std::vector<std::string> definitions;
+
+    // TODO: refine me
+    std::map<ProfileCondition, ProfileConfig> config;
 };
 
 }

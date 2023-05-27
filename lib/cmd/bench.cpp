@@ -7,6 +7,7 @@
 #include <range/v3/view.hpp>
 #include <spdlog/spdlog.h>
 
+#include "cppship/cmake/msvc.h"
 #include "cppship/cmake/naming.h"
 #include "cppship/cmd/bench.h"
 #include "cppship/cmd/build.h"
@@ -23,9 +24,10 @@ namespace {
 
 int run_one_bench(const cmd::BuildContext& ctx, const std::string_view bench)
 {
-    const auto bin = (ctx.profile_dir / bench).string();
-    status("bench", "{}", bin);
-    return boost::process::system(bin);
+    const auto bin = ctx.profile_dir / msvc::fix_bin(ctx, bench);
+    const auto cmd = bin.string();
+    status("bench", "{}", cmd);
+    return boost::process::system(cmd);
 }
 
 }

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.17)
 project(cppship VERSION 0.6.0)
 
 # cpp std
@@ -9,8 +9,16 @@ set(CMAKE_CXX_EXTENSIONS Off)
 # must go after cpp std block
 include(cmake/conan.cmake)
 
+add_definitions("-DBOOST_PROCESS_USE_STD_FS")
+
 # cpp warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-unused-parameter -Wno-missing-field-initializers")
+if(MSVC)
+    add_compile_options("/Zc:__cplusplus")
+    add_compile_options("/Zc:preprocessor")
+    add_compile_options("/MP")
+else()
+    add_compile_options(-Wall -Wextra -Werror -Wno-unused-parameter -Wno-missing-field-initializers)
+endif()
 
 add_subdirectory(lib)
 add_subdirectory(src)

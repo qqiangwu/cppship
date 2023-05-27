@@ -13,8 +13,12 @@
 
 using namespace cppship;
 
-int cmd::run_install(const InstallOptions& options)
+int cmd::run_install([[maybe_unused]] const InstallOptions& options)
 {
+    // TODO: fix me
+#ifdef _WINNDOWS
+    throw Error { "install is not supported in Windows" };
+#else
     const int result = run_build({ .profile = options.profile });
     if (result != 0) {
         return EXIT_FAILURE;
@@ -32,4 +36,5 @@ int cmd::run_install(const InstallOptions& options)
     status("install", "{} to {}", bin_file.string(), dst);
     fs::copy_file(bin_file, dst, fs::copy_options::overwrite_existing);
     return EXIT_SUCCESS;
+#endif
 }

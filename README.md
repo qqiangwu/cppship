@@ -1,5 +1,6 @@
 [![Linux](https://github.com/qqiangwu/cppship/actions/workflows/ci-linux.yml/badge.svg?branch=main)](https://github.com/qqiangwu/cppship/actions/workflows/ci-linux.yml)
 [![macOS](https://github.com/qqiangwu/cppship/actions/workflows/ci-macos.yml/badge.svg?branch=main)](https://github.com/qqiangwu/cppship/actions/workflows/ci-macos.yml)
++[![Windows](https://github.com/qqiangwu/cppship/actions/workflows/ci-windows.yml/badge.svg?branch=main)](https://github.com/qqiangwu/cppship/actions/workflows/ci-windows.yml)
 
 # Intro
 A cargo-like modern cpp build tools, aimed to combine all existing best practices, rather than re-inventing them from scratch.

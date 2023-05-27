@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <exception>
 #include <optional>
+#include <sstream>
 
 #include <boost/algorithm/string.hpp>
 
@@ -26,6 +27,9 @@ std::string_view compiler::to_string(CompilerId compiler_id)
 
     case CompilerId::gcc:
         return "gcc";
+
+    case CompilerId::msvc:
+        return "msvc";
     }
 
     std::terminate();
@@ -92,6 +96,7 @@ std::string get_libcxx(CompilerId compiler_id)
     case CompilerId::gcc:
         return "libstdc++11";
 
+    case CompilerId::msvc:
     case CompilerId::unknown:
         return "";
     }

@@ -31,7 +31,7 @@ int cmd::run_fmt(const FmtOptions& options)
         status("format", "{}", file.string());
 
         const int err
-            = pr::system(fmt::format("{} {} {}", kFmtCmd, file.c_str(), (options.fix ? "-i" : "-n --Werror")).c_str());
+            = pr::system(fmt::format("{} {} {}", kFmtCmd, file.string(), (options.fix ? "-i" : "-n --Werror")));
         if (err != 0) {
             exit_code = EXIT_FAILURE;
         }

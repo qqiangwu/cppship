@@ -86,7 +86,8 @@ fmt = "9.1.0"
         {
             .deps_dir = deps_dir,
             .post_process
-            = [deps_dir](std::string& str) { boost::replace_all(str, deps_dir.string(), "${CMAKE_BINARY_DIR}/deps"); },
+            = [deps_dir](
+                  std::string& str) { boost::replace_all(str, deps_dir.generic_string(), "${CMAKE_BINARY_DIR}/deps"); },
         });
 
     const auto package_config_file = deps_dir / fmt::format("{}-config.cmake", package);
@@ -147,7 +148,8 @@ fmt = "9.1.0"
         {
             .deps_dir = deps_dir,
             .post_process
-            = [deps_dir](std::string& str) { boost::replace_all(str, deps_dir.string(), "${CMAKE_BINARY_DIR}/deps"); },
+            = [deps_dir](
+                  std::string& str) { boost::replace_all(str, deps_dir.generic_string(), "${CMAKE_BINARY_DIR}/deps"); },
         });
 
     const auto package_config_file = deps_dir / fmt::format("{}-config.cmake", package);

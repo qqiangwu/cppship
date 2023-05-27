@@ -1,0 +1,79 @@
+name: Windows
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    if: ${{!contains(github.event.pull_request.title, 'skip-ci') && !contains(github.event.head_commit.message, 'skip-ci')}}
+    strategy:
+      matrix:
+        build_type: [ Release, Debug ]
+        os: [windows-2022]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install conan
+      run: pip3 install conan
+
+    - name: Configure CMake
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build --config ${{ matrix.build_type }}
+
+    - name: Install
+      run: cmake --install ${{github.workspace}}/build --config ${{ matrix.build_type }}
+
+    - name: Configure CMake With Tests
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DENABLE_TEST=ON
+
+    - name: Build  Tests
+      run: cmake --build ${{github.workspace}}/build --config ${{ matrix.build_type }}
+
+    - name: Test
+      run: ctest --output-on-failure --verbose
+      working-directory: build
+
+    - name: Run cppship
+      run: |
+        Move-Item build .cppship
+        $Env:CPPSHIP_PROGRAM_DIR = $(Resolve-Path ./.cppship/src/${{ matrix.build_type }})
+        Set-Item -Path Env:Path -Value ($Env:CPPSHIP_PROGRAM_DIR + ";" + $Env:Path)
+        cppship
+        cppship build --profile ${{ matrix.build_type }}
+        cppship run --profile ${{ matrix.build_type }}
+        cppship test --profile ${{ matrix.build_type }}
+        cppship clean
+      working-directory: ${{github.workspace}}
+
+    - name: Cppship init app
+      run: |
+        $Env:CPPSHIP_PROGRAM_DIR = $(Resolve-Path ./.cppship/src/${{ matrix.build_type }})
+        Set-Item -Path Env:Path -Value ($Env:CPPSHIP_PROGRAM_DIR + ";" + $Env:Path)
+        mkdir .bin && cd .bin
+        cppship init . --name app
+        cppship build
+        cppship run
+        cppship test
+      working-directory: ${{github.workspace}}
+
+    - name: Cppship init lib
+      run: |
+        $Env:CPPSHIP_PROGRAM_DIR = $(Resolve-Path ./.cppship/src/${{ matrix.build_type }})
+        Set-Item -Path Env:Path -Value ($Env:CPPSHIP_PROGRAM_DIR + ";" + $Env:Path)
+        mkdir .lib && cd .lib
+        cppship init . --name lib --lib
+        cppship build
+        cppship test
+      working-directory: ${{github.workspace}}

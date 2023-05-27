@@ -23,7 +23,7 @@ void CmakeBin::build(std::ostream& out) const
 {
     out << "\n# BIN\n";
     out << fmt::format("add_executable({} {})\n", mDesc.name,
-        boost::join(mDesc.sources | transform([](const auto& path) { return path.string(); }), "\n"));
+        boost::join(mDesc.sources | transform([](const auto& path) { return path.generic_string(); }), "\n"));
 
     if (mDesc.include_dir) {
         out << "\n"

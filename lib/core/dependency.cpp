@@ -1,5 +1,6 @@
 #include "cppship/core/dependency.h"
 #include "cppship/exception.h"
+#include "cppship/util/string.h"
 
 #include <boost/algorithm/string.hpp>
 
@@ -36,10 +37,8 @@ Dependency cppship::parse_dep(std::string_view cmake_package, const fs::path& ta
     while (std::getline(ofs, line)) {
         if (boost::contains(line, "AGGREGATED GLOBAL TARGET WITH THE COMPONENTS")) {
             while (std::getline(ofs, line)) {
-                std::vector<std::string> fields;
-
                 boost::trim(line);
-                boost::split(fields, line, boost::is_space());
+                const auto fields = util::split(line, boost::is_space());
 
                 // set_property(TARGET boost::boost PROPERTY INTERFACE_LINK_LIBRARIES Boost::disable_autolinking APPEND)
                 if (fields.size() < kFieldsInComponentLine) {
@@ -57,8 +56,7 @@ Dependency cppship::parse_dep(std::string_view cmake_package, const fs::path& ta
             }
 
             // set(boost_LIBRARIES_DEBUG boost::boost)
-            std::vector<std::string> fields;
-            boost::split(fields, line, boost::is_any_of("() "));
+            const std::vector<std::string> fields = util::split(line, boost::is_any_of("() "));
             if (fields.size() < kFieldsInTargetLine) {
                 throw Error { fmt::format("cmake target file bad target line: {}", line) };
             }

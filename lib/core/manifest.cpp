@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <set>
 
+#include <boost/algorithm/string.hpp>
 #include <fmt/os.h>
 #include <range/v3/view/concat.hpp>
 #include <toml.hpp>
@@ -56,18 +57,18 @@ std::vector<DeclaredDependency> parse_dependencis(const toml::value& manifest, c
     std::vector<DeclaredDependency> declared_deps;
 
     const auto deps = toml::find_or<toml::table>(manifest, key, {});
-    for (const auto& [name, dep] : deps) {
+    for (const auto& [dep_name, dep_config] : deps) {
         auto& pkg = declared_deps.emplace_back();
 
-        pkg.package = name;
+        pkg.package = dep_name;
 
-        if (dep.is_string()) {
-            pkg.desc = ConanDep { .version = dep.as_string() };
-        } else if (dep.is_table()) {
-            if (dep.contains("git")) {
+        if (dep_config.is_string()) {
+            pkg.desc = ConanDep { .version = dep_config.as_string() };
+        } else if (dep_config.is_table()) {
+            if (dep_config.contains("git")) {
                 GitDep desc;
-                desc.git = find<std::string>(dep, "git");
-                desc.commit = find_or<std::string>(dep, "commit", "");
+                desc.git = find<std::string>(dep_config, "git");
+                desc.commit = find_or<std::string>(dep_config, "commit", "");
                 if (desc.git.empty()) {
                     throw Error { fmt::format("invalid git url {}", desc.git) };
                 }
@@ -77,17 +78,19 @@ std::vector<DeclaredDependency> parse_dependencis(const toml::value& manifest, c
 
                 pkg.desc = desc;
             } else {
+                toml::table empty_table;
+
                 ConanDep desc;
-                desc.version = toml::find<std::string>(dep, "version");
-                for (const auto& [key, val] : toml::find_or<toml::table>(dep, "options", {})) {
+                desc.version = toml::find<std::string>(dep_config, "version");
+                for (const auto& [key, val] : toml::find_or<toml::table>(dep_config, "options", empty_table)) {
                     desc.options.emplace(key, get_option_value(val));
                 }
 
-                pkg.components = toml::find_or<std::vector<std::string>>(dep, "components", {});
+                pkg.components = toml::find_or<std::vector<std::string>>(dep_config, "components", {});
                 pkg.desc = desc;
             }
         } else {
-            throw Error { fmt::format("invalid dependency {} in manifest", name) };
+            throw Error { fmt::format("invalid dependency {} in manifest", dep_name) };
         }
     }
 
@@ -111,10 +114,36 @@ ProfileOptions parse_profile_options(
     const toml::value& manifest, const std::string& key, const std::string& cxxflags_default = "")
 {
     const auto profile = toml::find_or(manifest, key, {});
-    return {
-        .cxxflags = toml::find_or<std::string>(profile, "cxxflags", cxxflags_default),
-        .definitions = toml::find_or<std::vector<std::string>>(profile, "definitions", {}),
-    };
+    ProfileOptions result;
+
+    if (profile.is_table()) {
+        for (const auto& [profile_key, val] : profile.as_table()) {
+            // TODO: refine me
+            if (!profile_key.starts_with("cfg")) {
+                continue;
+            }
+
+            const auto conf = boost::replace_all_copy(profile_key, " ", "");
+            if (conf == R"(cfg(compiler="msvc"))") {
+                result.config[ProfileCondition::msvc] = {
+                    .cxxflags = toml::find_or<std::string>(val, "cxxflags", ""),
+                    .definitions = toml::find_or<std::vector<std::string>>(val, "definitions", {}),
+                };
+            } else if (conf == R"(cfg(not(compiler="msvc")))") {
+                result.config[ProfileCondition::non_msvc] = {
+                    .cxxflags = toml::find_or<std::string>(val, "cxxflags", ""),
+                    .definitions = toml::find_or<std::vector<std::string>>(val, "definitions", {}),
+                };
+            } else {
+                throw Error { fmt::format("invalid config {}", profile_key) };
+            }
+        }
+    }
+
+    result.cxxflags = toml::find_or<std::string>(profile, "cxxflags", cxxflags_default);
+    result.definitions = toml::find_or<std::vector<std::string>>(profile, "definitions", {});
+
+    return result;
 }
 
 }
@@ -138,11 +167,11 @@ Manifest::Manifest(const fs::path& file)
 
         check_dependency_dups(mDependencies, mDevDependencies);
 
-        mProfileDefault = parse_profile_options(value, "profile", "");
+        mProfileDefault = parse_profile_options(value, "profile");
 
         const auto profile = find_or(value, "profile", {});
-        mProfileDebug = parse_profile_options(profile, "debug", "-g");
-        mProfileRelease = parse_profile_options(profile, "release", "-O3 -DNDEBUG");
+        mProfileDebug = parse_profile_options(profile, "debug");
+        mProfileRelease = parse_profile_options(profile, "release");
     } catch (const std::out_of_range& e) {
         throw Error { e.what() };
     } catch (const toml::exception& e) {

@@ -76,7 +76,7 @@ void Layout::scan_tests_()
         mSources.insert(path);
 
         // a/b/c.cpp => a_b_c
-        const auto rel_path = path.lexically_relative(mRoot / kTestsPath).string();
+        const auto rel_path = path.lexically_relative(mRoot / kTestsPath).generic_string();
         const auto name = boost::replace_all_copy(rel_path, "/", "_").substr(0, rel_path.size() - kCppExtension.size());
 
         mTests.emplace(name, Target { .name = name, .sources = { path } });
@@ -108,7 +108,7 @@ void Layout::scan_lib_()
     }
 
     for (const auto& path : lib_test_sources) {
-        const auto rel_path = path.lexically_relative(mRoot / kLibPath).string();
+        const auto rel_path = path.lexically_relative(mRoot / kLibPath).generic_string();
         // a/b/c_test.cpp => a_b_c
         const auto name = boost::replace_all_copy(rel_path, "/", "_")
                               .substr(0, rel_path.size() - kCppExtension.size() - kTestSuffix.size());
@@ -173,10 +173,10 @@ std::optional<Target> Layout::test(std::string_view name) const
     return iter->second;
 }
 
-std::vector<Target> Layout::binaries() const { return mBinaries | values | ranges::to<std::vector<Target>>(); }
+std::vector<Target> Layout::binaries() const { return mBinaries | values | ranges::to<std::vector>(); }
 
-std::vector<Target> Layout::examples() const { return mExamples | values | ranges::to<std::vector<Target>>(); }
+std::vector<Target> Layout::examples() const { return mExamples | values | ranges::to<std::vector>(); }
 
-std::vector<Target> Layout::benches() const { return mBenches | values | ranges::to<std::vector<Target>>(); }
+std::vector<Target> Layout::benches() const { return mBenches | values | ranges::to<std::vector>(); }
 
-std::vector<Target> Layout::tests() const { return mTests | values | ranges::to<std::vector<Target>>(); }
+std::vector<Target> Layout::tests() const { return mTests | values | ranges::to<std::vector>(); }

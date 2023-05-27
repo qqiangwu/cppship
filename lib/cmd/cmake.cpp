@@ -29,8 +29,7 @@ int cmd::run_cmake(const CmakeOptions&)
     const auto result = std::move(resolver).resolve();
 
     ResolvedDependencies deps = toml::get<ResolvedDependencies>(toml::parse(ctx.dependency_file));
-    const auto declared_deps
-        = concat(result.dependencies, result.dev_dependencies) | ranges::to<std::vector<DeclaredDependency>>();
+    const auto declared_deps = concat(result.dependencies, result.dev_dependencies) | ranges::to<std::vector>();
     CmakeGenerator gen(&ctx.layout, ctx.manifest,
         GeneratorOptions {
             .deps = cmake::collect_cmake_deps(result.dependencies, deps),
