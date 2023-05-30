@@ -49,6 +49,7 @@ private:
     void emit_footer_();
 
 private:
+    void fill_default_profile_();
     void fill_profile_(Profile profile);
 
 private:

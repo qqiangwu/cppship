@@ -18,7 +18,7 @@ spdlog = "1.11.0"
 definitions = ["BOOST_PROCESS_USE_STD_FS"]
 
 [profile.'cfg(not(compiler = "msvc"))']
-cxxflags = "-Wall -Wextra -Werror -Wno-unused-parameter -Wno-missing-field-initializers"
+cxxflags = ["-Wall", "-Wextra", "-Werror", "-Wno-unused-parameter", "-Wno-missing-field-initializers"]
 
 [profile.'cfg(compiler = "msvc")']
-cxxflags = "/Zc:__cplusplus /Zc:preprocessor /MP"
+cxxflags = ["/Zc:__cplusplus", "/Zc:preprocessor", "/MP"]

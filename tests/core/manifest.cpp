@@ -245,15 +245,16 @@ name = "abc"
 version = "0.1.0"
 
 [profile]
-cxxflags = "-Wall"
+cxxflags = ["-Wall"]
 definitions = ["A", "B"]
     )");
 
     prof = meta.default_profile();
-    ASSERT_EQ(prof.cxxflags, "-Wall");
-    ASSERT_EQ(prof.definitions.size(), 2);
+    ASSERT_EQ(prof.cxxflags.size(), 1);
+    ASSERT_EQ(prof.cxxflags[0], "-Wall");
 
     ranges::sort(prof.definitions);
+    ASSERT_EQ(prof.definitions.size(), 2);
     ASSERT_EQ(prof.definitions[0], "A");
     ASSERT_EQ(prof.definitions[1], "B");
 }
@@ -266,7 +267,7 @@ version = "0.1.0"
     )");
 
     auto prof = meta.profile(Profile::debug);
-    EXPECT_EQ(prof.cxxflags, "");
+    ASSERT_TRUE(prof.cxxflags.empty());
     ASSERT_TRUE(prof.definitions.empty());
 
     meta = mock_manifest(R"([package]
@@ -274,17 +275,19 @@ name = "abc"
 version = "0.1.0"
 
 [profile.debug]
-cxxflags = "-Wall"
+cxxflags = ["-Wall", "-Wextra"]
 definitions = ["A", "B"]
     )");
 
     prof = meta.profile(Profile::debug);
-    EXPECT_EQ(prof.cxxflags, "-Wall");
-    EXPECT_EQ(prof.definitions.size(), 2);
+    ASSERT_EQ(prof.cxxflags.size(), 2);
+    ASSERT_EQ(prof.cxxflags[0], "-Wall");
+    ASSERT_EQ(prof.cxxflags[1], "-Wextra");
 
     ranges::sort(prof.definitions);
-    EXPECT_EQ(prof.definitions[0], "A");
-    EXPECT_EQ(prof.definitions[1], "B");
+    ASSERT_EQ(prof.definitions.size(), 2);
+    ASSERT_EQ(prof.definitions[0], "A");
+    ASSERT_EQ(prof.definitions[1], "B");
 }
 
 TEST(manifest, ProfileRelease)
@@ -295,7 +298,7 @@ version = "0.1.0"
     )");
 
     auto prof = meta.profile(Profile::release);
-    EXPECT_EQ(prof.cxxflags, "");
+    ASSERT_TRUE(prof.cxxflags.empty());
     ASSERT_TRUE(prof.definitions.empty());
 
     meta = mock_manifest(R"([package]
@@ -303,17 +306,23 @@ name = "abc"
 version = "0.1.0"
 
 [profile.release]
-cxxflags = "-Wall"
+cxxflags = ["-Wall"]
 definitions = ["A", "B"]
     )");
 
     prof = meta.profile(Profile::release);
-    EXPECT_EQ(prof.cxxflags, "-Wall");
-    EXPECT_EQ(prof.definitions.size(), 2);
+    ASSERT_EQ(prof.cxxflags.size(), 1);
+    ASSERT_EQ(prof.cxxflags[0], "-Wall");
 
     ranges::sort(prof.definitions);
-    EXPECT_EQ(prof.definitions[0], "A");
-    EXPECT_EQ(prof.definitions[1], "B");
+    ASSERT_EQ(prof.definitions.size(), 2);
+    ASSERT_EQ(prof.definitions[0], "A");
+    ASSERT_EQ(prof.definitions[1], "B");
+
+    for (const auto& prof : { meta.default_profile(), meta.profile(Profile::debug) }) {
+        ASSERT_TRUE(prof.cxxflags.empty());
+        ASSERT_TRUE(prof.definitions.empty());
+    }
 }
 
 TEST(manifest, ProfileCfg)
@@ -323,23 +332,25 @@ name = "abc"
 version = "0.1.0"
 
 [profile.'cfg(not(compiler = "msvc"))']
-cxxflags = "-Wall"
+cxxflags = ["-Wall"]
 
 [profile.'cfg(compiler = "msvc")']
-cxxflags = "/MP"
+cxxflags = ["/MP"]
 definitions = ["A"]
     )");
 
     auto prof = meta.default_profile();
-    EXPECT_EQ(prof.cxxflags, "");
+    ASSERT_TRUE(prof.cxxflags.empty());
     ASSERT_TRUE(prof.definitions.empty());
     ASSERT_TRUE(prof.config.contains(ProfileCondition::msvc));
     ASSERT_TRUE(prof.config.contains(ProfileCondition::non_msvc));
 
-    EXPECT_EQ(prof.config[ProfileCondition::msvc].cxxflags, "/MP");
-    EXPECT_EQ(prof.config[ProfileCondition::msvc].definitions.size(), 1);
+    ASSERT_EQ(prof.config[ProfileCondition::msvc].cxxflags.size(), 1);
+    EXPECT_EQ(prof.config[ProfileCondition::msvc].cxxflags[0], "/MP");
+    ASSERT_EQ(prof.config[ProfileCondition::msvc].definitions.size(), 1);
     EXPECT_EQ(prof.config[ProfileCondition::msvc].definitions[0], "A");
 
-    EXPECT_EQ(prof.config[ProfileCondition::non_msvc].cxxflags, "-Wall");
+    ASSERT_EQ(prof.config[ProfileCondition::non_msvc].cxxflags.size(), 1);
+    EXPECT_EQ(prof.config[ProfileCondition::non_msvc].cxxflags[0], "-Wall");
     EXPECT_EQ(prof.config[ProfileCondition::non_msvc].definitions.size(), 0);
 }

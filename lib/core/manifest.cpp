@@ -24,6 +24,20 @@ template <class T = toml::value> T get(const toml::value& value, const std::stri
     return toml::find<T>(value, key);
 }
 
+std::vector<std::string> get_list(const toml::value& value, const std::string& key)
+{
+    if (value.is_uninitialized() || !value.contains(key)) {
+        return {};
+    }
+
+    const auto& content = value.at(key);
+    if (!content.is_array()) {
+        throw Error { fmt::format("invalid manifest: {} should be a table", key) };
+    }
+
+    return get<std::vector<std::string>>(content);
+}
+
 CxxStd get_cxx_std(const toml::value& value)
 {
     const auto val = toml::find_or<int>(value, "std", 17);
@@ -110,8 +124,7 @@ void check_dependency_dups(const std::vector<DeclaredDependency>& deps, const st
     }
 }
 
-ProfileOptions parse_profile_options(
-    const toml::value& manifest, const std::string& key, const std::string& cxxflags_default = "")
+ProfileOptions parse_profile_options(const toml::value& manifest, const std::string& key)
 {
     const auto profile = toml::find_or(manifest, key, {});
     ProfileOptions result;
@@ -126,13 +139,13 @@ ProfileOptions parse_profile_options(
             const auto conf = boost::replace_all_copy(profile_key, " ", "");
             if (conf == R"(cfg(compiler="msvc"))") {
                 result.config[ProfileCondition::msvc] = {
-                    .cxxflags = toml::find_or<std::string>(val, "cxxflags", ""),
-                    .definitions = toml::find_or<std::vector<std::string>>(val, "definitions", {}),
+                    .cxxflags = get_list(val, "cxxflags"),
+                    .definitions = get_list(val, "definitions"),
                 };
             } else if (conf == R"(cfg(not(compiler="msvc")))") {
                 result.config[ProfileCondition::non_msvc] = {
-                    .cxxflags = toml::find_or<std::string>(val, "cxxflags", ""),
-                    .definitions = toml::find_or<std::vector<std::string>>(val, "definitions", {}),
+                    .cxxflags = get_list(val, "cxxflags"),
+                    .definitions = get_list(val, "definitions"),
                 };
             } else {
                 throw Error { fmt::format("invalid config {}", profile_key) };
@@ -140,8 +153,8 @@ ProfileOptions parse_profile_options(
         }
     }
 
-    result.cxxflags = toml::find_or<std::string>(profile, "cxxflags", cxxflags_default);
-    result.definitions = toml::find_or<std::vector<std::string>>(profile, "definitions", {});
+    result.cxxflags = get_list(profile, "cxxflags");
+    result.definitions = get_list(profile, "definitions");
 
     return result;
 }
