@@ -7,7 +7,6 @@
 #include "cppship/core/manifest.h"
 #include "cppship/exception.h"
 #include "cppship/util/log.h"
-#include "cppship/util/string.h"
 
 #include <boost/algorithm/string/join.hpp>
 #include <fmt/core.h>
@@ -23,6 +22,8 @@ using namespace ranges::views;
 using namespace cppship;
 using namespace cppship::cmake;
 using namespace fmt::literals;
+
+using boost::join;
 
 std::vector<cmake::Dep> cmake::collect_cmake_deps(
     const std::vector<DeclaredDependency>& declared_deps, const ResolvedDependencies& deps)
@@ -99,32 +100,8 @@ enable_testing()
 
 )";
 
-    const auto& default_profile = mManifest.default_profile();
-    if (!default_profile.cxxflags.empty() || !default_profile.definitions.empty()) {
-        mOut << "# cpp options\n";
-        mOut << fmt::format("add_compile_options({})\n", default_profile.cxxflags);
-        mOut << fmt::format("add_compile_definitions({})\n", boost::join(default_profile.definitions, " "));
-
-        if (auto conf = default_profile.config.find(ProfileCondition::msvc); conf != default_profile.config.end()) {
-            mOut << fmt::format(R"(
-if(MSVC)
-    add_compile_options({})
-    add_compile_definitions({})
-endif()
-)",
-                conf->second.cxxflags, boost::join(conf->second.definitions, " "));
-        }
-
-        if (auto conf = default_profile.config.find(ProfileCondition::non_msvc); conf != default_profile.config.end()) {
-            mOut << fmt::format(R"(
-if(NOT MSVC)
-    add_compile_options({})
-    add_compile_definitions({})
-endif()
-)",
-                conf->second.cxxflags, boost::join(conf->second.definitions, " "));
-        }
-    }
+    mOut << "# cpp options\n";
+    fill_default_profile_();
 
     mOut << "\n# profile cpp options\n";
     fill_profile_(Profile::debug);
@@ -366,16 +343,50 @@ include(CPack)
 )";
 }
 
+namespace {
+
+inline std::string format_condition(ProfileCondition condition)
+{
+    switch (condition) {
+    case ProfileCondition::msvc:
+        return "MSVC";
+
+    case ProfileCondition::non_msvc:
+        return "NOT MSVC";
+    }
+
+    std::abort();
+}
+
+}
+
+void CmakeGenerator::fill_default_profile_()
+{
+    const auto& default_profile = mManifest.default_profile();
+    if (!default_profile.cxxflags.empty()) {
+        mOut << fmt::format("add_compile_options({})\n", join(default_profile.cxxflags, " "));
+    }
+    if (!default_profile.definitions.empty()) {
+        mOut << fmt::format("add_compile_definitions({})\n", join(default_profile.definitions, " "));
+    }
+
+    for (const auto& [condition, conf] : default_profile.config) {
+        mOut << fmt::format(R"(
+if({})
+    add_compile_options({})
+    add_compile_definitions({})
+endif()
+)",
+            format_condition(condition), join(conf.cxxflags, " "), join(conf.definitions, " "));
+    }
+}
+
 void CmakeGenerator::fill_profile_(Profile profile)
 {
     const auto& options = mManifest.profile(profile);
     const auto& profile_str = to_string(profile);
 
-    for (const auto& opt : util::split(options.cxxflags, boost::is_space())) {
-        if (opt.empty()) {
-            continue;
-        }
-
+    for (const auto& opt : options.cxxflags) {
         mOut << fmt::format("add_compile_options($<$<CONFIG:{}>:{}>)\n", profile_str, opt);
     }
     for (const auto& def : options.definitions) {

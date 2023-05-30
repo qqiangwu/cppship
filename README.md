@@ -108,20 +108,24 @@ simple_lib = { git = "https://github.com/cppship/demo_lib.git", commit = "25dbed
 scnlib = "1.1.2"
 
 [profile]
-# by default, apply to all profiles
-cxxflags = "-Wall -Wextra -Werror -Wno-unused-parameter -Wno-missing-field-initializers"
-definitions = ["A", "B"]
+definitions = ["BOOST_PROCESS_USE_STD_FS"]
+
+[profile.'cfg(not(compiler = "msvc"))']
+cxxflags = ["-Wall", "-Wextra", "-Werror", "-Wno-unused-parameter", "-Wno-missing-field-initializers"]
+
+[profile.'cfg(compiler = "msvc")']
+cxxflags = ["/Zc:__cplusplus", "/Zc:preprocessor", "/MP"]
 
 [profile.debug]
 # appends to cxxflags in [profile]
-cxxflags = "-g"
+cxxflags = ["-g"]
 
 # merged with definitions in [profile]
 definitions = ["C"]
 
 [profile.release]
 # appends to cxxflags in [profile]
-cxxflags = "-O3 -DNDEBUG"
+cxxflags = ["-O3", "-DNDEBUG"]
 ```
 
 ## header-only lib

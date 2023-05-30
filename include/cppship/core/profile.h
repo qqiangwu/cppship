@@ -58,12 +58,12 @@ enum class ProfileCondition {
 };
 
 struct ProfileConfig {
-    std::string cxxflags;
+    std::vector<std::string> cxxflags;
     std::vector<std::string> definitions;
 };
 
 struct ProfileOptions {
-    std::string cxxflags;
+    std::vector<std::string> cxxflags;
     std::vector<std::string> definitions;
 
     // TODO: refine me
