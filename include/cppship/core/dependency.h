@@ -49,5 +49,4 @@ ResolvedDependencies collect_conan_deps(const fs::path& conan_dep_dir, std::stri
 
 }
 
-// NOLINTNEXTLINE(readability-identifier-length): make toml happy
 TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(cppship::Dependency, package, cmake_package, cmake_target, components);
