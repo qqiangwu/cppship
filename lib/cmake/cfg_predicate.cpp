@@ -54,6 +54,7 @@ struct CfgOptionGen {
     }
 };
 
+// NOLINTBEGIN(misc-no-recursion)
 struct CfgGen {
     std::string operator()(core::CfgOption cfg) const { return std::visit(CfgOptionGen {}, cfg); }
 
@@ -91,3 +92,5 @@ struct CfgGen {
 }
 
 std::string cmake::generate_predicate(const core::CfgPredicate& cfg) { return std::visit(CfgGen {}, cfg); }
+
+// NOLINTEND(misc-no-recursion)

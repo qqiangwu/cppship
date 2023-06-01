@@ -10,6 +10,7 @@
 #include <boost/spirit/include/qi.hpp>
 #include <fmt/core.h>
 #include <fmt/ostream.h>
+#include <range/v3/algorithm/equal.hpp>
 
 using namespace cppship;
 using namespace cppship::core;
@@ -111,3 +112,38 @@ try {
 } catch (const qi::expectation_failure<CfgParser::iterator_type>& e) {
     throw ManifestCfgParseError(fmt::format("{}", fmt::streamed(e.what_)), std::string(e.first, e.last));
 }
+
+namespace {
+
+struct CfgEquals {
+    bool operator()(const CfgPredicate& a, const CfgPredicate& b) const
+    {
+        if (a.index() != b.index()) {
+            return false;
+        }
+
+        if (a.valueless_by_exception()) {
+            return true;
+        }
+
+        return std::visit(CfgEquals {}, a, b);
+    }
+
+    template <class T> bool operator()(const boost::recursive_wrapper<T>& a, const boost::recursive_wrapper<T>& b) const
+    {
+        return (*this)(a.get(), b.get());
+    }
+
+    template <class T>
+    requires std::is_same_v<T, CfgAll> || std::is_same_v<T, CfgAny>
+    bool operator()(const T& a, const T& b) const { return ranges::equal(a.predicates, b.predicates, *this); }
+
+    bool operator()(const CfgNot& a, const CfgNot& b) const { return (*this)(a.predicate, b.predicate); }
+
+    bool operator()(const CfgOption& a, const CfgOption& b) const { return a == b; }
+
+    template <class T1, class T2> bool operator()(const T1&, const T2&) const { return false; }
+};
+}
+
+bool core::operator==(const CfgPredicate& a, const CfgPredicate& b) { return CfgEquals {}(a, b); }

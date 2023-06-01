@@ -1,5 +1,6 @@
 #include "cppship/cmake/generator.h"
 #include "cppship/cmake/bin.h"
+#include "cppship/cmake/cfg_predicate.h"
 #include "cppship/cmake/dep.h"
 #include "cppship/cmake/group.h"
 #include "cppship/cmake/lib.h"
@@ -11,6 +12,7 @@
 #include <boost/algorithm/string/join.hpp>
 #include <fmt/core.h>
 #include <fmt/format.h>
+#include <gsl/pointers>
 #include <range/v3/action/push_back.hpp>
 #include <range/v3/algorithm/any_of.hpp>
 #include <range/v3/range/conversion.hpp>
@@ -170,7 +172,6 @@ void CmakeGenerator::add_lib_sources_()
         .include_dirs = target->includes,
         .sources = target->sources,
         .deps = mDeps,
-        .definitions = mManifest.default_profile().definitions,
     });
     lib.build(mOut);
 
@@ -188,7 +189,6 @@ void CmakeGenerator::add_app_sources_()
     std::vector<std::string> definitions {
         fmt::format(R"({}_VERSION="${{PROJECT_VERSION}}")", boost::to_upper_copy(std::string { mName })),
     };
-    ranges::push_back(definitions, mManifest.default_profile().definitions);
 
     for (const auto& bin : mLayout->binaries()) {
         cmake::CmakeBin gen({
@@ -257,7 +257,6 @@ find_package(benchmark REQUIRED)
             .sources = bin.sources,
             .lib = mLib,
             .deps = deps,
-            .definitions = mManifest.default_profile().definitions,
         });
 
         gen.build(mOut);
@@ -282,7 +281,6 @@ void CmakeGenerator::add_examples_()
             .sources = bin.sources,
             .lib = mLib,
             .deps = mDevDeps,
-            .definitions = mManifest.default_profile().definitions,
             .runtime_dir = "examples",
         });
 
@@ -345,39 +343,49 @@ include(CPack)
 
 namespace {
 
-inline std::string format_condition(ProfileCondition condition)
-{
-    switch (condition) {
-    case ProfileCondition::msvc:
-        return "MSVC";
+class ProfileOptionAppender {
+    std::ostream& mOut;
 
-    case ProfileCondition::non_msvc:
-        return "NOT MSVC";
+public:
+    ProfileOptionAppender(std::ostream& out)
+        : mOut(out)
+    {
     }
 
-    std::abort();
-}
+    void output(const std::string_view profile, const ProfileConfig& config, std::string_view indent = "")
+    {
+        for (const auto& opt : config.cxxflags) {
+            mOut << fmt::format("{}add_compile_options($<$<CONFIG:{}>:{}>)\n", indent, profile, opt);
+        }
+        for (const auto& def : config.definitions) {
+            mOut << fmt::format("{}add_compile_definitions($<$<CONFIG:{}>:{}>)\n", indent, profile, def);
+        }
+    }
+
+    void output(const ProfileConfig& config, std::string_view indent = "")
+    {
+        for (const auto& opt : config.cxxflags) {
+            mOut << fmt::format("{}add_compile_options({})\n", indent, opt);
+        }
+        for (const auto& def : config.definitions) {
+            mOut << fmt::format("{}add_compile_definitions({})\n", indent, def);
+        }
+    }
+};
 
 }
 
 void CmakeGenerator::fill_default_profile_()
 {
     const auto& default_profile = mManifest.default_profile();
-    if (!default_profile.cxxflags.empty()) {
-        mOut << fmt::format("add_compile_options({})\n", join(default_profile.cxxflags, " "));
-    }
-    if (!default_profile.definitions.empty()) {
-        mOut << fmt::format("add_compile_definitions({})\n", join(default_profile.definitions, " "));
-    }
 
-    for (const auto& [condition, conf] : default_profile.config) {
-        mOut << fmt::format(R"(
-if({})
-    add_compile_options({})
-    add_compile_definitions({})
-endif()
-)",
-            format_condition(condition), join(conf.cxxflags, " "), join(conf.definitions, " "));
+    ProfileOptionAppender appender(mOut);
+    appender.output(default_profile.config);
+
+    for (const auto& [condition, config] : default_profile.conditional_configs) {
+        mOut << fmt::format("if({})\n", generate_predicate(condition));
+        appender.output(config, "\t");
+        mOut << "endif()\n\n";
     }
 }
 
@@ -386,10 +394,12 @@ void CmakeGenerator::fill_profile_(Profile profile)
     const auto& options = mManifest.profile(profile);
     const auto& profile_str = to_string(profile);
 
-    for (const auto& opt : options.cxxflags) {
-        mOut << fmt::format("add_compile_options($<$<CONFIG:{}>:{}>)\n", profile_str, opt);
-    }
-    for (const auto& def : options.definitions) {
-        mOut << fmt::format("add_compile_definitions($<$<CONFIG:{}>:{}>)\n", profile_str, def);
+    ProfileOptionAppender appender(mOut);
+    appender.output(profile_str, options.config);
+
+    for (const auto& [condition, config] : options.conditional_configs) {
+        mOut << fmt::format("if({})\n", generate_predicate(condition));
+        appender.output(profile_str, config, "\t");
+        mOut << "endif()\n\n";
     }
 }

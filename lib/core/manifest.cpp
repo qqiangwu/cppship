@@ -32,10 +32,24 @@ std::vector<std::string> get_list(const toml::value& value, const std::string& k
 
     const auto& content = value.at(key);
     if (!content.is_array()) {
-        throw Error { fmt::format("invalid manifest: {} should be a table", key) };
+        throw Error { fmt::format("invalid manifest: {} should be an array", key) };
     }
 
     return get<std::vector<std::string>>(content);
+}
+
+std::unordered_map<std::string, toml::value> get_table(const toml::value& value, const std::string& key)
+{
+    if (value.is_uninitialized() || !value.contains(key)) {
+        return {};
+    }
+
+    const auto& content = value.at(key);
+    if (!content.is_table()) {
+        throw Error { fmt::format("invalid manifest: {} should be a table", key) };
+    }
+
+    return get<std::unordered_map<std::string, toml::value>>(content);
 }
 
 CxxStd get_cxx_std(const toml::value& value)
@@ -66,7 +80,7 @@ std::string get_option_value(const toml::value& value)
     throw Error { "dependency options' value can only be bool/int/string" };
 }
 
-std::vector<DeclaredDependency> parse_dependencis(const toml::value& manifest, const std::string& key)
+std::vector<DeclaredDependency> parse_dependencies(const toml::value& manifest, const std::string& key)
 {
     std::vector<DeclaredDependency> declared_deps;
 
@@ -124,39 +138,14 @@ void check_dependency_dups(const std::vector<DeclaredDependency>& deps, const st
     }
 }
 
-ProfileOptions parse_profile_options(const toml::value& manifest, const std::string& key)
+ProfileConfig parse_profile_options(const toml::value& manifest, const std::string& key)
 {
     const auto profile = toml::find_or(manifest, key, {});
-    ProfileOptions result;
 
-    if (profile.is_table()) {
-        for (const auto& [profile_key, val] : profile.as_table()) {
-            // TODO: refine me
-            if (!profile_key.starts_with("cfg")) {
-                continue;
-            }
-
-            const auto conf = boost::replace_all_copy(profile_key, " ", "");
-            if (conf == R"(cfg(compiler="msvc"))") {
-                result.config[ProfileCondition::msvc] = {
-                    .cxxflags = get_list(val, "cxxflags"),
-                    .definitions = get_list(val, "definitions"),
-                };
-            } else if (conf == R"(cfg(not(compiler="msvc")))") {
-                result.config[ProfileCondition::non_msvc] = {
-                    .cxxflags = get_list(val, "cxxflags"),
-                    .definitions = get_list(val, "definitions"),
-                };
-            } else {
-                throw Error { fmt::format("invalid config {}", profile_key) };
-            }
-        }
-    }
-
-    result.cxxflags = get_list(profile, "cxxflags");
-    result.definitions = get_list(profile, "definitions");
-
-    return result;
+    return {
+        .cxxflags = get_list(profile, "cxxflags"),
+        .definitions = get_list(profile, "definitions"),
+    };
 }
 
 }
@@ -169,22 +158,52 @@ Manifest::Manifest(const fs::path& file)
 
     try {
         const auto value = toml::parse(file);
-        const auto package = get(value, "package");
 
+        // parse [package]
+        const auto package = get(value, "package");
         mName = get<std::string>(package, "name");
         mVersion = get<std::string>(package, "version");
         mCxxStd = get_cxx_std(package);
 
-        mDependencies = parse_dependencis(value, "dependencies");
-        mDevDependencies = parse_dependencis(value, "dev-dependencies");
+        mDependencies = parse_dependencies(value, "dependencies");
+        mDevDependencies = parse_dependencies(value, "dev-dependencies");
 
         check_dependency_dups(mDependencies, mDevDependencies);
 
-        mProfileDefault = parse_profile_options(value, "profile");
+        // parse [profile] and [profile.debug]
+        mProfileDefault.config = parse_profile_options(value, "profile");
 
         const auto profile = find_or(value, "profile", {});
-        mProfileDebug = parse_profile_options(profile, "debug");
-        mProfileRelease = parse_profile_options(profile, "release");
+        mProfileDebug.config = parse_profile_options(profile, "debug");
+        mProfileRelease.config = parse_profile_options(profile, "release");
+
+        // parse [target.<cfg>.profile]
+        for (const auto& [condition_str, config] : get_table(value, "target")) {
+            if (!config.contains("profile")) {
+                continue;
+            }
+
+            const auto condition = core::parse_cfg(condition_str);
+
+            mProfileDefault.conditional_configs.push_back({
+                .condition = condition,
+                .config = parse_profile_options(config, "profile"),
+            });
+
+            const auto profile = get_table(config, "profile");
+            if (profile.contains("debug")) {
+                mProfileDebug.conditional_configs.push_back({
+                    .condition = condition,
+                    .config = parse_profile_options(profile, "debug"),
+                });
+            }
+            if (profile.contains("release")) {
+                mProfileRelease.conditional_configs.push_back({
+                    .condition = condition,
+                    .config = parse_profile_options(profile, "release"),
+                });
+            }
+        }
     } catch (const std::out_of_range& e) {
         throw Error { e.what() };
     } catch (const toml::exception& e) {

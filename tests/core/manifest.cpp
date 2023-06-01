@@ -10,6 +10,7 @@
 #include "cppship/util/io.h"
 
 using namespace cppship;
+using namespace cppship::core;
 
 namespace {
 
@@ -236,7 +237,9 @@ name = "abc"
 version = "0.1.0"
     )");
 
-    auto prof = meta.default_profile();
+    ASSERT_TRUE(meta.default_profile().conditional_configs.empty());
+
+    auto prof = meta.default_profile().config;
     ASSERT_TRUE(prof.cxxflags.empty());
     ASSERT_TRUE(prof.definitions.empty());
 
@@ -249,7 +252,7 @@ cxxflags = ["-Wall"]
 definitions = ["A", "B"]
     )");
 
-    prof = meta.default_profile();
+    prof = meta.default_profile().config;
     ASSERT_EQ(prof.cxxflags.size(), 1);
     ASSERT_EQ(prof.cxxflags[0], "-Wall");
 
@@ -266,7 +269,7 @@ name = "abc"
 version = "0.1.0"
     )");
 
-    auto prof = meta.profile(Profile::debug);
+    auto prof = meta.profile(Profile::debug).config;
     ASSERT_TRUE(prof.cxxflags.empty());
     ASSERT_TRUE(prof.definitions.empty());
 
@@ -279,7 +282,7 @@ cxxflags = ["-Wall", "-Wextra"]
 definitions = ["A", "B"]
     )");
 
-    prof = meta.profile(Profile::debug);
+    prof = meta.profile(Profile::debug).config;
     ASSERT_EQ(prof.cxxflags.size(), 2);
     ASSERT_EQ(prof.cxxflags[0], "-Wall");
     ASSERT_EQ(prof.cxxflags[1], "-Wextra");
@@ -297,7 +300,7 @@ name = "abc"
 version = "0.1.0"
     )");
 
-    auto prof = meta.profile(Profile::release);
+    auto prof = meta.profile(Profile::release).config;
     ASSERT_TRUE(prof.cxxflags.empty());
     ASSERT_TRUE(prof.definitions.empty());
 
@@ -310,7 +313,7 @@ cxxflags = ["-Wall"]
 definitions = ["A", "B"]
     )");
 
-    prof = meta.profile(Profile::release);
+    prof = meta.profile(Profile::release).config;
     ASSERT_EQ(prof.cxxflags.size(), 1);
     ASSERT_EQ(prof.cxxflags[0], "-Wall");
 
@@ -319,7 +322,7 @@ definitions = ["A", "B"]
     ASSERT_EQ(prof.definitions[0], "A");
     ASSERT_EQ(prof.definitions[1], "B");
 
-    for (const auto& prof : { meta.default_profile(), meta.profile(Profile::debug) }) {
+    for (const auto& prof : { meta.default_profile().config, meta.profile(Profile::debug).config }) {
         ASSERT_TRUE(prof.cxxflags.empty());
         ASSERT_TRUE(prof.definitions.empty());
     }
@@ -331,26 +334,70 @@ TEST(manifest, ProfileCfg)
 name = "abc"
 version = "0.1.0"
 
-[profile.'cfg(not(compiler = "msvc"))']
+[target.'cfg(not(compiler = "msvc"))'.profile]
 cxxflags = ["-Wall"]
 
-[profile.'cfg(compiler = "msvc")']
+[target.'cfg(compiler = "msvc")'.profile]
 cxxflags = ["/MP"]
 definitions = ["A"]
     )");
 
     auto prof = meta.default_profile();
-    ASSERT_TRUE(prof.cxxflags.empty());
-    ASSERT_TRUE(prof.definitions.empty());
-    ASSERT_TRUE(prof.config.contains(ProfileCondition::msvc));
-    ASSERT_TRUE(prof.config.contains(ProfileCondition::non_msvc));
+    ASSERT_TRUE(prof.config.cxxflags.empty());
+    ASSERT_TRUE(prof.config.definitions.empty());
 
-    ASSERT_EQ(prof.config[ProfileCondition::msvc].cxxflags.size(), 1);
-    EXPECT_EQ(prof.config[ProfileCondition::msvc].cxxflags[0], "/MP");
-    ASSERT_EQ(prof.config[ProfileCondition::msvc].definitions.size(), 1);
-    EXPECT_EQ(prof.config[ProfileCondition::msvc].definitions[0], "A");
+    const auto& condition_configs = prof.conditional_configs;
+    ASSERT_EQ(condition_configs.size(), 2);
+    ASSERT_TRUE(meta.profile(Profile::debug).conditional_configs.empty());
+    ASSERT_TRUE(meta.profile(Profile::release).conditional_configs.empty());
 
-    ASSERT_EQ(prof.config[ProfileCondition::non_msvc].cxxflags.size(), 1);
-    EXPECT_EQ(prof.config[ProfileCondition::non_msvc].cxxflags[0], "-Wall");
-    EXPECT_EQ(prof.config[ProfileCondition::non_msvc].definitions.size(), 0);
+    int seen = 0;
+    for (const auto& [condition, config] : condition_configs) {
+        if (condition == cfg::Compiler::msvc) {
+            ASSERT_EQ(config.cxxflags.size(), 1);
+            EXPECT_EQ(config.cxxflags[0], "/MP");
+            ASSERT_EQ(config.definitions.size(), 1);
+            EXPECT_EQ(config.definitions[0], "A");
+
+            ++seen;
+        } else if (condition == CfgNot { cfg::Compiler::msvc }) {
+            ASSERT_EQ(config.cxxflags.size(), 1);
+            EXPECT_EQ(config.cxxflags[0], "-Wall");
+            EXPECT_EQ(config.definitions.size(), 0);
+
+            ++seen;
+        } else {
+            FAIL() << "unexpected condition";
+        }
+    }
+
+    ASSERT_EQ(seen, 2);
+}
+
+TEST(manifest, ProfileCfgDebug)
+{
+    auto meta = mock_manifest(R"([package]
+name = "abc"
+version = "0.1.0"
+
+[target.'cfg(compiler = "msvc")'.profile.debug]
+cxxflags = ["-Wall"]
+
+[target.'cfg(compiler = "msvc")'.profile]
+cxxflags = ["/MP"]
+definitions = ["A"]
+    )");
+
+    auto prof = meta.default_profile();
+    ASSERT_TRUE(prof.config.cxxflags.empty());
+    ASSERT_TRUE(prof.config.definitions.empty());
+
+    const auto& condition_configs = prof.conditional_configs;
+    ASSERT_EQ(condition_configs.size(), 1);
+    ASSERT_EQ(condition_configs[0].condition, cfg::Compiler::msvc);
+
+    ASSERT_EQ(meta.profile(Profile::debug).conditional_configs.size(), 1);
+    ASSERT_EQ(meta.profile(Profile::debug).conditional_configs[0].condition, cfg::Compiler::msvc);
+
+    ASSERT_TRUE(meta.profile(Profile::release).conditional_configs.empty());
 }
