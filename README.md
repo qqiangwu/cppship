@@ -110,10 +110,10 @@ scnlib = "1.1.2"
 [profile]
 definitions = ["BOOST_PROCESS_USE_STD_FS"]
 
-[profile.'cfg(not(compiler = "msvc"))']
+[target.'cfg(not(compiler = "msvc"))'.profile]
 cxxflags = ["-Wall", "-Wextra", "-Werror", "-Wno-unused-parameter", "-Wno-missing-field-initializers"]
 
-[profile.'cfg(compiler = "msvc")']
+[target.'cfg(compiler = "msvc")'.profile]
 cxxflags = ["/Zc:__cplusplus", "/Zc:preprocessor", "/MP"]
 
 [profile.debug]

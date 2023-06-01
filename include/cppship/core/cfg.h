@@ -65,6 +65,8 @@ struct CfgAny {
     std::vector<CfgPredicate> predicates;
 };
 
+bool operator==(const CfgPredicate& a, const CfgPredicate& b);
+
 CfgPredicate parse_cfg(std::string_view cfg);
 
 }

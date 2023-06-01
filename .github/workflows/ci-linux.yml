@@ -23,8 +23,6 @@ jobs:
             cxx: clang++-13
           - cc: clang-14
             cxx: clang++-14
-          - cc: gcc-9
-            cxx: g++-9
           - cc: gcc-10
             cxx: g++-10
           - cc: gcc-11

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <map>
 #include <set>
 #include <string>
 #include <string_view>
@@ -8,6 +7,7 @@
 
 #include <boost/algorithm/string/case_conv.hpp>
 
+#include "cppship/core/cfg.h"
 #include "cppship/exception.h"
 
 namespace cppship {
@@ -52,22 +52,19 @@ inline Profile parse_profile(std::string profile)
     throw InvalidProfile {};
 }
 
-enum class ProfileCondition {
-    msvc,
-    non_msvc,
-};
-
 struct ProfileConfig {
     std::vector<std::string> cxxflags;
     std::vector<std::string> definitions;
 };
 
-struct ProfileOptions {
-    std::vector<std::string> cxxflags;
-    std::vector<std::string> definitions;
+struct ConditionConfig {
+    core::CfgPredicate condition;
+    ProfileConfig config;
+};
 
-    // TODO: refine me
-    std::map<ProfileCondition, ProfileConfig> config;
+struct ProfileOptions {
+    ProfileConfig config;
+    std::vector<ConditionConfig> conditional_configs;
 };
 
 }

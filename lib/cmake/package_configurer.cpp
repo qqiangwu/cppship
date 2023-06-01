@@ -31,6 +31,7 @@ target_include_directories({target} INTERFACE {cmake_deps_dir}/{package}/include
             continue;
         }
 
+        // TODO(wuqq): refine generation, apply cxxflags and definitions
         Manifest manifest(package_manifest);
         Layout layout(package_dir, package);
         const auto lib_target = *layout.lib();
@@ -40,7 +41,6 @@ target_include_directories({target} INTERFACE {cmake_deps_dir}/{package}/include
             .include_dirs = lib_target.includes,
             .sources = lib_target.sources,
             .deps = cmake_deps,
-            .definitions = manifest.default_profile().definitions,
         });
 
         std::ostringstream out;
