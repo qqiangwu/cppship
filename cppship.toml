@@ -1,6 +1,6 @@
 [package]
 name = "cppship"
-version = "0.6.0"
+version = "0.7.0"
 authors = []
 std = 20
 
@@ -19,6 +19,14 @@ definitions = ["BOOST_PROCESS_USE_STD_FS"]
 
 [target.'cfg(not(compiler = "msvc"))'.profile]
 cxxflags = ["-Wall", "-Wextra", "-Werror", "-Wno-unused-parameter", "-Wno-missing-field-initializers"]
+
+[target.'cfg(not(compiler = "msvc"))'.profile.debug]
+ubsan = true
+
+# macos with gcc11 has bugs in asan:
+# `member call on address 0x60b0000001a0 which does not point to an object of type '_Sp_counted_base'`
+[target.'cfg(any(os = "linux", compiler = "clang", compiler = "apple_clang"))'.profile.debug]
+asan = true
 
 [target.'cfg(compiler = "msvc")'.profile]
 cxxflags = ["/Zc:__cplusplus", "/Zc:preprocessor", "/MP"]

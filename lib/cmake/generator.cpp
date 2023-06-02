@@ -343,11 +343,11 @@ include(CPack)
 
 namespace {
 
-class ProfileOptionAppender {
+class ProfileOptionGen {
     std::ostream& mOut;
 
 public:
-    ProfileOptionAppender(std::ostream& out)
+    ProfileOptionGen(std::ostream& out)
         : mOut(out)
     {
     }
@@ -360,6 +360,30 @@ public:
         for (const auto& def : config.definitions) {
             mOut << fmt::format("{}add_compile_definitions($<$<CONFIG:{}>:{}>)\n", indent, profile, def);
         }
+
+        if (config.ubsan.value_or(false)) {
+            mOut << fmt::format("{}add_compile_options($<$<CONFIG:{}>:{}>)\n", indent, profile, "-fsanitize=undefined");
+            mOut << fmt::format("{}add_link_options($<$<CONFIG:{}>:{}>)\n", indent, profile, "-fsanitize=undefined");
+            mOut << fmt::format("{}message(STATUS \"Enable ubsan\")\n", indent);
+        }
+
+        if (config.tsan.value_or(false)) {
+            mOut << fmt::format("{}add_compile_options($<$<CONFIG:{}>:{}>)\n", indent, profile, "-fsanitize=thread");
+            mOut << fmt::format("{}add_link_options($<$<CONFIG:{}>:{}>)\n", indent, profile, "-fsanitize=thread");
+            mOut << fmt::format("{}message(STATUS \"Enable tsan\")\n", indent);
+        }
+
+        if (config.asan.value_or(false)) {
+            mOut << fmt::format("{}add_compile_options($<$<CONFIG:{}>:{}>)\n", indent, profile, "-fsanitize=address");
+            mOut << fmt::format("{}add_link_options($<$<CONFIG:{}>:{}>)\n", indent, profile, "-fsanitize=address");
+            mOut << fmt::format("{}message(STATUS \"Enable asan\")\n", indent);
+        }
+
+        if (config.leak.value_or(false)) {
+            mOut << fmt::format("{}add_compile_options($<$<CONFIG:{}>:{}>)\n", indent, profile, "-fsanitize=leak");
+            mOut << fmt::format("{}add_link_options($<$<CONFIG:{}>:{}>)\n", indent, profile, "-fsanitize=leak");
+            mOut << fmt::format("{}message(STATUS \"Enable leak\")\n", indent);
+        }
     }
 
     void output(const ProfileConfig& config, std::string_view indent = "")
@@ -370,6 +394,30 @@ public:
         for (const auto& def : config.definitions) {
             mOut << fmt::format("{}add_compile_definitions({})\n", indent, def);
         }
+
+        if (config.ubsan.value_or(false)) {
+            mOut << fmt::format("{}add_compile_options({})\n", indent, "-fsanitize=undefined");
+            mOut << fmt::format("{}add_link_options({})\n", indent, "-fsanitize=undefined");
+            mOut << fmt::format("{}message(STATUS \"Enable ubsan\")\n", indent);
+        }
+
+        if (config.tsan.value_or(false)) {
+            mOut << fmt::format("{}add_compile_options({})\n", indent, "-fsanitize=thread");
+            mOut << fmt::format("{}add_link_options({})\n", indent, "-fsanitize=thread");
+            mOut << fmt::format("{}message(STATUS \"Enable tsan\")\n", indent);
+        }
+
+        if (config.asan.value_or(false)) {
+            mOut << fmt::format("{}add_compile_options({})\n", indent, "-fsanitize=address");
+            mOut << fmt::format("{}add_link_options({})\n", indent, "-fsanitize=address");
+            mOut << fmt::format("{}message(STATUS \"Enable asan\")\n", indent);
+        }
+
+        if (config.leak.value_or(false)) {
+            mOut << fmt::format("{}add_compile_options({})\n", indent, "-fsanitize=leak");
+            mOut << fmt::format("{}add_link_options({})\n", indent, "-fsanitize=leak");
+            mOut << fmt::format("{}message(STATUS \"Enable leak\")\n", indent);
+        }
     }
 };
 
@@ -379,7 +427,7 @@ void CmakeGenerator::fill_default_profile_()
 {
     const auto& default_profile = mManifest.default_profile();
 
-    ProfileOptionAppender appender(mOut);
+    ProfileOptionGen appender(mOut);
     appender.output(default_profile.config);
 
     for (const auto& [condition, config] : default_profile.conditional_configs) {
@@ -394,7 +442,7 @@ void CmakeGenerator::fill_profile_(Profile profile)
     const auto& options = mManifest.profile(profile);
     const auto& profile_str = to_string(profile);
 
-    ProfileOptionAppender appender(mOut);
+    ProfileOptionGen appender(mOut);
     appender.output(profile_str, options.config);
 
     for (const auto& [condition, config] : options.conditional_configs) {

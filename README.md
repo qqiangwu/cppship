@@ -109,6 +109,10 @@ scnlib = "1.1.2"
 
 [profile]
 definitions = ["BOOST_PROCESS_USE_STD_FS"]
+ubsan = true
+asan = true
+tsan = false
+leak = false
 
 [target.'cfg(not(compiler = "msvc"))'.profile]
 cxxflags = ["-Wall", "-Wextra", "-Werror", "-Wno-unused-parameter", "-Wno-missing-field-initializers"]

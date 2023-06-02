@@ -47,6 +47,9 @@ public:
     const ProfileOptions& profile(Profile prof) const;
 
 private:
+    void set_defaults_();
+
+private:
     std::string mName;
     std::string mVersion;
     CxxStd mCxxStd = CxxStd::cxx17;
