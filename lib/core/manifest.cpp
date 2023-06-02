@@ -3,15 +3,18 @@
 #include "cppship/util/fs.h"
 #include "cppship/util/io.h"
 
+#include <array>
 #include <cstdlib>
 #include <set>
 
 #include <boost/algorithm/string.hpp>
 #include <fmt/os.h>
+#include <range/v3/algorithm/any_of.hpp>
 #include <range/v3/view/concat.hpp>
 #include <toml.hpp>
 
 using namespace cppship;
+using namespace ranges;
 
 namespace {
 
@@ -22,6 +25,20 @@ template <class T = toml::value> T get(const toml::value& value, const std::stri
     }
 
     return toml::find<T>(value, key);
+}
+
+std::optional<bool> get_bool(const toml::value& value, const std::string& key)
+{
+    if (value.is_uninitialized() || !value.contains(key)) {
+        return std::nullopt;
+    }
+
+    const auto& content = value.at(key);
+    if (!content.is_boolean()) {
+        throw Error { fmt::format("invalid manifest: {} should be a bool", key) };
+    }
+
+    return content.as_boolean();
 }
 
 std::vector<std::string> get_list(const toml::value& value, const std::string& key)
@@ -129,7 +146,7 @@ void check_dependency_dups(const std::vector<DeclaredDependency>& deps, const st
 {
     std::set<std::string> package_seen;
 
-    for (const auto& dep : ranges::views::concat(deps, dev_deps)) {
+    for (const auto& dep : views::concat(deps, dev_deps)) {
         if (package_seen.contains(dep.package)) {
             throw Error { fmt::format("package {} already declared", dep.package) };
         }
@@ -142,10 +159,27 @@ ProfileConfig parse_profile_options(const toml::value& manifest, const std::stri
 {
     const auto profile = toml::find_or(manifest, key, {});
 
-    return {
+    ProfileConfig config = {
         .cxxflags = get_list(profile, "cxxflags"),
+        .linkflags = get_list(profile, "linkflags"),
         .definitions = get_list(profile, "definitions"),
+        .ubsan = get_bool(profile, "ubsan"),
+        .tsan = get_bool(profile, "tsan"),
+        .asan = get_bool(profile, "asan"),
+        .leak = get_bool(profile, "leak"),
     };
+
+    if (config.tsan && *config.tsan) {
+        if (config.asan && *config.asan) {
+            throw Error { "tsan cannot be used with asan" };
+        }
+
+        if (config.leak && *config.leak) {
+            throw Error { "tsan cannot be used with leak" };
+        }
+    }
+
+    return config;
 }
 
 }
@@ -204,11 +238,35 @@ Manifest::Manifest(const fs::path& file)
                 });
             }
         }
+
+        // set defaults
+        set_defaults_();
     } catch (const std::out_of_range& e) {
         throw Error { e.what() };
     } catch (const toml::exception& e) {
         throw Error { fmt::format("invalid manifest format at {}", e.what()) };
     }
+}
+
+void Manifest::set_defaults_()
+{
+    // TODO
+    /*
+    const bool ubsan_present
+        = any_of(std::array { &mProfileDebug, &mProfileDebug, &mProfileRelease }, [](const ProfileOptions* profile) {
+              return profile->config.ubsan.has_value()
+                  || any_of(profile->conditional_configs, [](const auto& cc) { return cc.config.ubsan.has_value(); });
+          });
+    if (ubsan_present) {
+        return;
+    }
+
+    // in debug profile, enable ubsan if not msvc
+    mProfileDebug.conditional_configs.push_back({
+        .condition = core::CfgNot { { core::cfg::Compiler::msvc } },
+        .config = { .ubsan = true },
+    });
+    */
 }
 
 const ProfileOptions& Manifest::profile(Profile prof) const

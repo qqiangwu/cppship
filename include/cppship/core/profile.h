@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <set>
 #include <string>
 #include <string_view>
@@ -54,7 +55,12 @@ inline Profile parse_profile(std::string profile)
 
 struct ProfileConfig {
     std::vector<std::string> cxxflags;
+    std::vector<std::string> linkflags;
     std::vector<std::string> definitions;
+    std::optional<bool> ubsan;
+    std::optional<bool> tsan;
+    std::optional<bool> asan;
+    std::optional<bool> leak;
 };
 
 struct ConditionConfig {
