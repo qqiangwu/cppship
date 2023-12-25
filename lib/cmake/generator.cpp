@@ -10,6 +10,7 @@
 #include "cppship/util/log.h"
 
 #include <boost/algorithm/string/join.hpp>
+#include <boost/algorithm/string/replace.hpp>
 #include <fmt/core.h>
 #include <fmt/format.h>
 #include <gsl/pointers>
@@ -187,7 +188,8 @@ void CmakeGenerator::add_app_sources_()
     }
 
     std::vector<std::string> definitions {
-        fmt::format(R"({}_VERSION="${{PROJECT_VERSION}}")", boost::to_upper_copy(std::string { mName })),
+        fmt::format(R"({}_VERSION="${{PROJECT_VERSION}}")",
+            boost::replace_all_copy(boost::to_upper_copy(std::string { mName }), "-", "_")),
     };
 
     for (const auto& bin : mLayout->binaries()) {

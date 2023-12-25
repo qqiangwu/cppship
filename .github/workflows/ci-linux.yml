@@ -17,12 +17,12 @@ jobs:
       matrix:
         build_type: [ Debug, Release ]
         compiler:
-          - cc: clang-12
-            cxx: clang++-12
           - cc: clang-13
             cxx: clang++-13
           - cc: clang-14
             cxx: clang++-14
+          - cc: clang-15
+            cxx: clang++-15
           - cc: gcc-10
             cxx: g++-10
           - cc: gcc-11
