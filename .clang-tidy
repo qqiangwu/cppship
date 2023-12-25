@@ -1,6 +1,6 @@
 ---
 HeaderFilterRegex: ^(include|src|tests|benches)
-Checks: -*,boost-*,bugprone-*,-bugprone-narrowing-conversions,-bugprone-easily-swappable-parameters,clang-analyzer-*,-clang-analyzer-cplusplus.NewDeleteLeaks,concurrency-*,cppcoreguidelines-*,misc-*,modernize-*,-modernize-pass-by-value,-modernize-use-trailing-return-type,-modernize-use-nodiscard,performance-*,portability-*,readability-*,-readability-make-member-function-const,-readability-redundant-access-specifiers,-readability-convert-member-functions-to-static,-readability-magic-numbers,-readability-named-parameter,-readability-identifier-length
+Checks: -*,boost-*,bugprone-*,-bugprone-narrowing-conversions,-bugprone-easily-swappable-parameters,clang-analyzer-*,-clang-analyzer-cplusplus.NewDeleteLeaks,concurrency-*,cppcoreguidelines-*,misc-*,modernize-*,-modernize-pass-by-value,-modernize-use-trailing-return-type,-modernize-use-nodiscard,performance-*,portability-*,readability-*,-readability-make-member-function-const,-readability-redundant-access-specifiers,-readability-convert-member-functions-to-static,-readability-magic-numbers,-readability-named-parameter,-readability-identifier-length,-misc-const-correctness
 WarningsAsErrors: '*'
 InheritParentConfig: false
 CheckOptions:
@@ -70,3 +70,5 @@ CheckOptions:
 #
 # -clang-analyzer-cplusplus.NewDeleteLeaks
 #     Too many false-positives
+# -misc-const-correctness
+#     Too slow
