@@ -50,11 +50,16 @@ std::vector<cmake::Dep> cmake::collect_cmake_deps(
 
         for (const auto& declared_component : dep.components) {
             auto component = fmt::format("{}::{}", resolved_dep.cmake_package, declared_component);
-            if (!resolved_components.contains(component)) {
-                throw Error { fmt::format("invalid component {} in manifest", declared_component) };
+            if (resolved_components.contains(component)) {
+                targets_required.push_back(std::move(component));
+                continue;
+            }
+            if (resolved_components.contains(declared_component)) {
+                targets_required.push_back(declared_component);
+                continue;
             }
 
-            targets_required.push_back(std::move(component));
+            throw Error { fmt::format("invalid component {} in manifest", declared_component) };
         }
 
         result.push_back({
