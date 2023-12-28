@@ -106,6 +106,10 @@ void CmakeGenerator::emit_header_()
 include(CTest)
 enable_testing()
 
+if(CMAKE_EXPORT_COMPILE_COMMANDS)
+    set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES})
+endif()
+
 )";
 
     mOut << "# cpp options\n";

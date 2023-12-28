@@ -1,10 +1,14 @@
 cmake_minimum_required(VERSION 3.17)
-project(cppship VERSION 0.7.1)
+project(cppship VERSION 0.7.2)
 
 # cpp std
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED On)
 set(CMAKE_CXX_EXTENSIONS Off)
+
+if(CMAKE_EXPORT_COMPILE_COMMANDS)
+    set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES})
+endif()
 
 # must go after cpp std block
 include(cmake/conan.cmake)
