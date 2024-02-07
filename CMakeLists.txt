@@ -34,6 +34,12 @@ else()
         add_compile_options($<$<CONFIG:Debug>:-fsanitize=address>)
         add_link_options($<$<CONFIG:Debug>:-fsanitize=address>)
     endif()
+
+	if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+		add_compile_options(-Wno-restrict)
+		add_compile_options(-Wno-free-nonheap-object)
+		add_compile_options(-Wno-dangling-reference)
+	endif()
 endif()
 
 add_subdirectory(lib)
