@@ -32,7 +32,7 @@ int cmd::run_install([[maybe_unused]] const InstallOptions& options)
         return EXIT_SUCCESS;
     }
 
-    const auto dst = fmt::format("/usr/local/bin/{}", manifest.name());
+    const auto dst = fmt::format("{}/bin/{}", options.root, manifest.name());
     status("install", "{} to {}", bin_file.string(), dst);
     fs::copy_file(bin_file, dst, fs::copy_options::overwrite_existing);
     return EXIT_SUCCESS;
