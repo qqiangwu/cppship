@@ -7,7 +7,7 @@ jobs:
   homebrew:
     runs-on: macos-latest
     steps:
-      - uses: dawidd6/action-homebrew-bump-formula@v3
+      - uses: dawidd6/action-homebrew-bump-formula@v4
         with:
           token: ${{ secrets.BREW_DUMP_PR }}
           formula: cppship
