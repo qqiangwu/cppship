@@ -40,12 +40,13 @@ Dependency cppship::parse_dep(std::string_view cmake_package, const fs::path& ta
                 boost::trim(line);
                 const auto fields = util::split(line, boost::is_space());
 
-                // set_property(TARGET boost::boost PROPERTY INTERFACE_LINK_LIBRARIES Boost::disable_autolinking APPEND)
+                // set_property(TARGET boost::boost APPEND PROPERTY INTERFACE_LINK_LIBRARIES Boost::disable_autolinking)
                 if (fields.size() < kFieldsInComponentLine) {
                     break;
                 }
 
-                dep.components.emplace_back(fields[4]);
+                const auto& component = fields.back();
+                dep.components.emplace_back(component.begin(), component.end() - 1);
             }
         }
 
