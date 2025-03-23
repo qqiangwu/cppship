@@ -274,6 +274,22 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
 
     cmake.parser.add_description("generate cmake CMakeFiles.txt");
 
+    // index
+    auto& index = commands.emplace_back("index", common, [](const ArgumentParser& cmd) {
+        return run_index(cmd::IndexOptions {
+            .operation = cmd.get("operation"),
+            .name = cmd.present("name"),
+            .path = cmd.present("--path"),
+            .git = cmd.present("git"),
+        });
+    });
+
+    index.parser.add_description("manage package indexes");
+    index.parser.add_argument("operation").help("operation [add, remove, list]");
+    index.parser.add_argument("--name").help("name of index");
+    index.parser.add_argument("--path").help("filesystem path to local index to add");
+    index.parser.add_argument("--git").help("git URL to index to add");
+
     return commands;
 }
 
