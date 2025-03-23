@@ -27,13 +27,6 @@ private:
     fs::path mPrevCwd;
 };
 
-inline void create_if_not_exist(const fs::path& path)
-{
-    if (fs::exists(path)) {
-        return;
-    }
-
-    fs::create_directory(path);
-}
+void create_if_not_exist(const fs::path& path);
 
 }

@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include <filesystem>
 #include <thread>
 
 #include <gsl/narrow>
@@ -32,8 +33,10 @@ int cmd::run_install([[maybe_unused]] const InstallOptions& options)
         return EXIT_SUCCESS;
     }
 
-    const auto dst = fmt::format("{}/bin/{}", options.root, manifest.name());
-    status("install", "{} to {}", bin_file.string(), dst);
+    const auto root = fs::path(options.root);
+    const auto dst = root / "bin" / manifest.name();
+    cppship::create_if_not_exist(dst.parent_path());
+    status("install", "{} to {}", bin_file.string(), dst.string());
     fs::copy_file(bin_file, dst, fs::copy_options::overwrite_existing);
     return EXIT_SUCCESS;
 #endif
