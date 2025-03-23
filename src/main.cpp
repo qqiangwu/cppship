@@ -12,6 +12,7 @@
 
 #include "cppship/cppship.h"
 #include "cppship/exception.h"
+#include "cppship/util/fs.h"
 #include "cppship/util/log.h"
 
 #ifndef CPPSHIP_VERSION
@@ -170,7 +171,7 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
     install.parser.add_argument("--root")
         .help("specify the installation root")
         .metavar("root")
-        .default_value(std::string { "/usr/local" });
+        .default_value(get_cppship_dir().string());
 
     // run
     auto& run = commands.emplace_back("run", common, [](const ArgumentParser& cmd) {

@@ -29,4 +29,7 @@ private:
 
 void create_if_not_exist(const fs::path& path);
 
+inline constexpr std::string_view kCppShipDirName = ".cppship";
+fs::path get_cppship_dir();
+
 }
