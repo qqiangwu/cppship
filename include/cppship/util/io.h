@@ -1,7 +1,5 @@
 #pragma once
 
-#include <sstream>
-
 #include "cppship/util/fs.h"
 
 namespace cppship {

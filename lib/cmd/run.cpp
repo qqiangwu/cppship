@@ -1,5 +1,4 @@
 #include <cstdlib>
-#include <thread>
 
 #include <boost/process/system.hpp>
 #include <gsl/narrow>
@@ -70,7 +69,7 @@ int cmd::run_run(const RunOptions& options)
         return EXIT_FAILURE;
     }
 
-    const fs::path fixed_bin = msvc::fix_bin(ctx, bin);
+    const fs::path fixed_bin = msvc::fix_bin_path(ctx, bin);
     const auto bin_file = options.example ? ctx.profile_dir / kExamplesPath / fixed_bin : ctx.profile_dir / fixed_bin;
     if (!has_cmd(bin_file.string())) {
         error("no binary to run: {}", bin_file.string());

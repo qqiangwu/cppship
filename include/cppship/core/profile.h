@@ -1,7 +1,6 @@
 #pragma once
 
 #include <optional>
-#include <set>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -23,7 +22,7 @@ struct InvalidProfile : public Error {
 inline constexpr std::string_view kProfileDebug = "Debug";
 inline constexpr std::string_view kProfileRelease = "Release";
 
-enum class Profile { debug, release };
+enum class Profile : std::uint8_t { debug, release };
 
 inline std::string_view to_string(Profile profile)
 {

@@ -3,7 +3,6 @@
 #include <optional>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <vector>
 
 #include <fmt/format.h>
@@ -14,11 +13,11 @@
 
 namespace cppship {
 
-enum class CxxStd { cxx11 = 11, cxx14 = 14, cxx17 = 17, cxx20 = 20, cxx23 = 23 };
+enum class CxxStd : std::uint8_t { cxx11 = 11, cxx14 = 14, cxx17 = 17, cxx20 = 20, cxx23 = 23 };
 
-inline constexpr auto format_as(CxxStd std) { return fmt::underlying(std); }
+constexpr auto format_as(CxxStd std) { return fmt::underlying(std); }
 
-inline constexpr std::optional<CxxStd> to_cxx_std(int val) noexcept
+constexpr std::optional<CxxStd> to_cxx_std(int val) noexcept
 {
     for (const auto std : { CxxStd::cxx11, CxxStd::cxx14, CxxStd::cxx17, CxxStd::cxx20, CxxStd::cxx23 }) {
         if (val == static_cast<int>(std)) {

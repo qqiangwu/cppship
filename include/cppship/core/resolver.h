@@ -24,6 +24,7 @@ struct ResolveResult {
 // void(std::string_view package, const fs::path& dep_dir, std::string_view git, std::string_view commit)
 using GitFetcher = std::function<void(std::string_view, const fs::path&, std::string_view, std::string_view)>;
 
+// resolve git deps and git-clone it to cmake deps dir
 class Resolver {
 public:
     Resolver(const fs::path& deps_dir, gsl::not_null<const Manifest*> manifest, GitFetcher fetcher);

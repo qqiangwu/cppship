@@ -1,7 +1,6 @@
 #pragma once
 
 #include "cppship/core/dependency.h"
-#include "cppship/core/manifest.h"
 
 #include <string>
 #include <vector>
@@ -13,7 +12,8 @@ struct Dep {
     std::vector<std::string> cmake_targets;
 };
 
-std::vector<Dep> collect_cmake_deps(
-    const std::vector<DeclaredDependency>& declared_deps, const ResolvedDependencies& deps);
+// according `ResolvedDependencies`, resolve declared deps to cmake packages and targets
+std::vector<Dep> resolve_deps(
+    const std::vector<DeclaredDependency>& declared_deps, const ResolvedDependencies& resolved);
 
 }
