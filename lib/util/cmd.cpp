@@ -2,7 +2,6 @@
 
 #include <boost/process/env.hpp>
 #include <boost/process/search_path.hpp>
-#include <fmt/core.h>
 #include <spdlog/spdlog.h>
 
 #include "cppship/util/io.h"

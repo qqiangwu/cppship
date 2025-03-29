@@ -90,8 +90,9 @@ jobs:
       if: matrix.build_type == 'Release' && matrix.compiler.cxx == 'clang++-14' && github.event_name == 'pull_request'
       run: |
         mergebase=$(git merge-base --fork-point origin/${{github.event.pull_request.base.ref}})
+        /home/linuxbrew/.linuxbrew/bin/brew install llvm@19
+        export PATH="$(/home/linuxbrew/.linuxbrew/bin/brew --prefix llvm@19)/bin:$PATH"
         cppship fmt
-        cppship fmt -a
         cppship fmt -c ${mergebase}
         cppship lint -c ${mergebase}
         cppship clean
