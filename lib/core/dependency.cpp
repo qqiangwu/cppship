@@ -23,7 +23,7 @@ constexpr int kFieldsInTargetLine = 3;
 
 }
 
-Dependency cppship::parse_dep(std::string_view cmake_package, const fs::path& target_file)
+Dependency dep_internals::parse_conan_cmake_target_file(std::string_view cmake_package, const fs::path& target_file)
 {
     Dependency dep;
     dep.cmake_package = cmake_package;
@@ -76,7 +76,7 @@ Dependency cppship::parse_dep(std::string_view cmake_package, const fs::path& ta
 
 ResolvedDependencies cppship::collect_conan_deps(const fs::path& conan_dep_dir, std::string_view profile)
 {
-    std::map<std::string, Dependency> deps;
+    ResolvedDependencies deps;
 
     for (const auto& dentry : fs::directory_iterator { conan_dep_dir }) {
         const std::string filename = dentry.path().filename().string();
@@ -87,8 +87,8 @@ ResolvedDependencies cppship::collect_conan_deps(const fs::path& conan_dep_dir, 
 
         const std::string_view cmake_package = std::string_view { filename }.substr(0, filename.size() - suffix.size());
         try {
-            auto dep = parse_dep(cmake_package, dentry.path());
-            deps.emplace(dep.package, std::move(dep));
+            auto dep = dep_internals::parse_conan_cmake_target_file(cmake_package, dentry.path());
+            deps.insert(std::move(dep));
         } catch (std::exception& e) {
             throw Error { fmt::format("invalid cmake target file {}: {}", filename, e.what()) };
         }

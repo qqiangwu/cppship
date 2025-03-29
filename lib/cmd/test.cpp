@@ -1,5 +1,4 @@
 #include <cstdlib>
-#include <thread>
 
 #include <boost/process/system.hpp>
 #include <gsl/narrow>

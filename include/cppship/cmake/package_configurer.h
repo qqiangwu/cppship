@@ -1,7 +1,6 @@
 #pragma once
 
 #include "cppship/core/dependency.h"
-#include "cppship/util/fs.h"
 
 #include <functional>
 
@@ -14,6 +13,7 @@ struct ConfigOptions {
     std::function<void(std::string&)> post_process;
 };
 
+// for cppship deps, generate cmake packages for them
 void config_packages(
     const ResolvedDependencies& cppship_deps, const ResolvedDependencies& all_deps, const ConfigOptions& options);
 

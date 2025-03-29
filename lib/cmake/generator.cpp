@@ -7,7 +7,6 @@
 #include "cppship/cmake/naming.h"
 #include "cppship/core/manifest.h"
 #include "cppship/exception.h"
-#include "cppship/util/log.h"
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/replace.hpp>
@@ -28,13 +27,13 @@ using namespace fmt::literals;
 
 using boost::join;
 
-std::vector<cmake::Dep> cmake::collect_cmake_deps(
-    const std::vector<DeclaredDependency>& declared_deps, const ResolvedDependencies& deps)
+std::vector<cmake::Dep> cmake::resolve_deps(
+    const std::vector<DeclaredDependency>& declared_deps, const ResolvedDependencies& resolved)
 {
     std::vector<cmake::Dep> result;
 
     for (const auto& dep : declared_deps) {
-        const auto& resolved_dep = deps.at(dep.package);
+        const auto& resolved_dep = resolved.get_or_die(dep.package);
 
         if (dep.components.empty()) {
             result.push_back({

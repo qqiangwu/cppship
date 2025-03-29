@@ -1,8 +1,5 @@
 #pragma once
 
-#include <optional>
-#include <string>
-
 namespace cppship::cmd {
 
 struct CmakeOptions { };

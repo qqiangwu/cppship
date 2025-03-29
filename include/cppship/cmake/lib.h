@@ -4,9 +4,9 @@
 #include <ostream>
 #include <set>
 
+#include <fmt/core.h>
+
 #include "cppship/cmake/dep.h"
-#include "cppship/core/manifest.h"
-#include "cppship/util/fs.h"
 
 namespace cppship::cmake {
 

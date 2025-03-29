@@ -4,7 +4,6 @@
 #include <cctype>
 #include <cstdlib>
 #include <exception>
-#include <optional>
 #include <sstream>
 
 #include <boost/algorithm/string.hpp>

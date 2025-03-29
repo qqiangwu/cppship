@@ -11,10 +11,8 @@
 #include "cppship/util/git.h"
 #include "cppship/util/io.h"
 #include "cppship/util/log.h"
-#include "cppship/util/repo.h"
 
 #include <fstream>
-#include <map>
 #include <sstream>
 #include <string>
 
@@ -172,7 +170,7 @@ void cmd::conan_setup(const BuildContext& ctx)
         }
     }
 
-    write(ctx.git_dep_file, toml::format(toml::value(result.resolved_dependencies)));
+    write(ctx.git_dep_file, toml::format(result.resolved_dependencies.to_toml()));
     write(ctx.conan_file, oss.str());
 }
 
@@ -195,15 +193,15 @@ void cmd::conan_install(const BuildContext& ctx)
     auto deps = collect_conan_deps(ctx.profile_dir / "conan", ctx.profile);
     auto cppship_deps = toml::get<ResolvedDependencies>(toml::parse(ctx.git_dep_file));
 
-    for (const auto& [name, dep] : cppship_deps) {
-        deps.emplace(name, dep);
+    for (const auto& dep : cppship_deps) {
+        deps.insert(dep);
     }
 
     if (!cppship_deps.empty()) {
         cppship_install(ctx, cppship_deps, deps);
     }
 
-    write(ctx.dependency_file, toml::format(toml::value(deps)));
+    write(ctx.dependency_file, toml::format(deps.to_toml()));
 }
 
 void cmd::cppship_install(
@@ -237,8 +235,8 @@ void cmd::cmake_setup(const BuildContext& ctx)
     ResolvedDependencies deps = toml::get<ResolvedDependencies>(toml::parse(ctx.dependency_file));
     CmakeGenerator gen(&ctx.layout, ctx.manifest,
         GeneratorOptions {
-            .deps = cmake::collect_cmake_deps(result.dependencies, deps),
-            .dev_deps = cmake::collect_cmake_deps(result.dev_dependencies, deps),
+            .deps = cmake::resolve_deps(result.dependencies, deps),
+            .dev_deps = cmake::resolve_deps(result.dev_dependencies, deps),
         });
     write(ctx.build_dir / "CMakeLists.txt", std::move(gen).build());
 

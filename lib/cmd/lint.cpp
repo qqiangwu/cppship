@@ -2,7 +2,6 @@
 
 #include <cstdlib>
 #include <string_view>
-#include <thread>
 #include <vector>
 
 #include <BS_thread_pool_light.hpp>
