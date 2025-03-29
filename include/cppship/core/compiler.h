@@ -4,7 +4,7 @@
 
 namespace cppship::compiler {
 
-enum class CompilerId { unknown, gcc, clang, apple_clang, msvc };
+enum class CompilerId : std::uint8_t { unknown, gcc, clang, apple_clang, msvc };
 
 std::string_view to_string(CompilerId compiler_id);
 

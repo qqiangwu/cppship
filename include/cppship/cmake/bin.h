@@ -5,8 +5,6 @@
 #include <set>
 
 #include "cppship/cmake/dep.h"
-#include "cppship/core/manifest.h"
-#include "cppship/util/fs.h"
 
 namespace cppship::cmake {
 

@@ -30,13 +30,13 @@ private:
 };
 
 namespace cfg {
-    enum class Os {
+    enum class Os : std::uint8_t {
         windows,
         macos,
         linux,
     };
 
-    enum class Compiler {
+    enum class Compiler : std::uint8_t {
         gcc,
         msvc,
         clang,

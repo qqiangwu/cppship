@@ -14,7 +14,6 @@
 #include "cppship/core/manifest.h"
 #include "cppship/util/fs.h"
 #include "cppship/util/log.h"
-#include "cppship/util/repo.h"
 
 using namespace cppship;
 using namespace cppship::cmake;
@@ -24,7 +23,7 @@ namespace {
 
 int run_one_bench(const cmd::BuildContext& ctx, const std::string_view bench)
 {
-    const auto bin = ctx.profile_dir / msvc::fix_bin(ctx, bench);
+    const auto bin = ctx.profile_dir / msvc::fix_bin_path(ctx, bench);
     const auto cmd = bin.string();
     status("bench", "{}", cmd);
     return boost::process::system(cmd);

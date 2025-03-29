@@ -4,8 +4,6 @@
 #include "cppship/util/log.h"
 #include "cppship/util/repo.h"
 
-#include <sstream>
-
 #include <fmt/format.h>
 #include <range/v3/action/push_back.hpp>
 #include <range/v3/action/reverse.hpp>
@@ -101,12 +99,11 @@ void Resolver::do_resolve_(const DeclaredDependency& dep)
     resolve_package_(dep.package, package_dir);
 
     mResult.dependencies.push_back(dep);
-    mResult.resolved_dependencies.emplace(dep.package,
-        Dependency {
-            .package = dep.package,
-            .cmake_package = dep.package,
-            .cmake_target = fmt::format("cppship::{}", dep.package),
-        });
+    mResult.resolved_dependencies.insert(Dependency {
+        .package = dep.package,
+        .cmake_package = dep.package,
+        .cmake_target = fmt::format("cppship::{}", dep.package),
+    });
 
     touch(footprint);
 }

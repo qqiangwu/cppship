@@ -1,5 +1,4 @@
 #include "cppship/core/cfg.h"
-#include "cppship/exception.h"
 
 #include <string>
 

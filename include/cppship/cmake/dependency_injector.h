@@ -17,6 +17,8 @@ public:
     virtual void inject(std::ostream& out, const Manifest& manifest) = 0;
 };
 
+// when generate cmake project according to cppship.toml, we need config conan and cppship deps, do the config in this
+// injector
 class CmakeDependencyInjector : public DependencyInjector {
 public:
     CmakeDependencyInjector(const fs::path& deps_dir, const std::vector<DeclaredDependency>& declared_deps,

@@ -1,7 +1,6 @@
 #pragma once
 
-#include <filesystem>
-#include <string_view>
+#include <filesystem>  // IWYU pragma: export
 
 namespace fs = std::filesystem;
 

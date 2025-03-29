@@ -11,12 +11,11 @@
 #include "cppship/core/layout.h"
 #include "cppship/core/manifest.h"
 #include "cppship/core/profile.h"
-#include "cppship/util/fs.h"
 #include "cppship/util/repo.h"
 
 namespace cppship::cmd {
 
-enum BuildGroup { lib, binaries, examples, tests, benches };
+enum class BuildGroup : std::uint8_t { lib, binaries, examples, tests, benches };
 
 struct BuildOptions {
     int max_concurrency = gsl::narrow_cast<int>(std::thread::hardware_concurrency());
