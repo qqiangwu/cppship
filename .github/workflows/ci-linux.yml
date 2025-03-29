@@ -59,13 +59,24 @@ jobs:
       run: pip3 install conan
 
     - name: Configure CMake
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{ matrix.build_type }}
 
     - name: Install
       run: cmake --install ${{github.workspace}}/build --config ${{ matrix.build_type }}
+
+    - name: Lint and format
+      if: matrix.build_type == 'Release' && matrix.compiler.cxx == 'clang++-14' && github.event_name == 'pull_request'
+      run: |
+        mergebase=$(git merge-base --fork-point origin/${{github.event.pull_request.base.ref}})
+        /home/linuxbrew/.linuxbrew/bin/brew install llvm@19
+        export PATH="$(/home/linuxbrew/.linuxbrew/bin/brew --prefix llvm@19)/bin:$PATH"
+        cppship fmt
+        cppship fmt -c ${mergebase}
+        cppship lint -c ${mergebase}
+        cppship clean
 
     - name: Configure CMake With Tests
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DENABLE_TEST=ON
@@ -85,16 +96,6 @@ jobs:
         cppship build --profile ${{ matrix.build_type }}
         cppship run --profile ${{ matrix.build_type }}
         cppship test --profile ${{ matrix.build_type }}
-
-    - name: Lint and format
-      if: matrix.build_type == 'Release' && matrix.compiler.cxx == 'clang++-14' && github.event_name == 'pull_request'
-      run: |
-        mergebase=$(git merge-base --fork-point origin/${{github.event.pull_request.base.ref}})
-        cppship fmt
-        cppship fmt -a
-        cppship fmt -c ${mergebase}
-        cppship lint -c ${mergebase}
-        cppship clean
 
     - name: Cppship init app
       run: |
