@@ -1,6 +1,4 @@
 #include <cstdlib>
-#include <filesystem>
-#include <thread>
 
 #include <gsl/narrow>
 #include <spdlog/spdlog.h>
@@ -10,7 +8,6 @@
 #include "cppship/core/manifest.h"
 #include "cppship/util/fs.h"
 #include "cppship/util/log.h"
-#include "cppship/util/repo.h"
 
 using namespace cppship;
 
@@ -35,7 +32,7 @@ int cmd::run_install([[maybe_unused]] const InstallOptions& options)
 
     const auto root = fs::path(options.root);
     const auto dst = root / "bin" / manifest.name();
-    cppship::create_if_not_exist(dst.parent_path());
+    create_if_not_exist(dst.parent_path());
     status("install", "{} to {}", bin_file.string(), dst.string());
     fs::copy_file(bin_file, dst, fs::copy_options::overwrite_existing);
     return EXIT_SUCCESS;

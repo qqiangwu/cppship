@@ -160,7 +160,10 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
 
     // install
     auto& install = commands.emplace_back("install", common, [](const ArgumentParser& cmd) {
-        return cmd::run_install({ .profile = parse_profile(cmd.get("--profile")), .root = cmd.get("--root") });
+        return cmd::run_install({
+            .profile = parse_profile(cmd.get("--profile")),
+            .root = cmd.get("--root"),
+        });
     });
 
     install.parser.add_description("install binary if exists");
