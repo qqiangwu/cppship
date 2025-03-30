@@ -9,7 +9,6 @@
 
 #include "cppship/cmake/dep.h"
 #include "cppship/cmake/dependency_injector.h"
-#include "cppship/core/dependency.h"
 #include "cppship/core/layout.h"
 #include "cppship/core/manifest.h"
 

@@ -1,20 +1,15 @@
 name: macOS
 
 on:
+  workflow_call:
   push:
-    branches: [ main ]
-  pull_request:
     branches: [ main ]
   schedule:
     - cron: "4 5 * * 0"
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-
 jobs:
   build:
-    if: ${{!contains(github.event.pull_request.title, 'skip-ci') && !contains(github.event.head_commit.message, 'skip-ci')}}
+    if: ${{!contains(github.event.head_commit.message, 'skip-ci')}}
     strategy:
       matrix:
         build_type: [ Release, Debug ]

@@ -1,9 +1,10 @@
 #include "cppship/util/cmd.h"
-#include "cppship/util/io.h"
-#include "cppship/util/log.h"
 
+#include <boost/process/env.hpp>
 #include <boost/process/search_path.hpp>
-#include <fmt/core.h>
+#include <spdlog/spdlog.h>
+
+#include "cppship/util/io.h"
 
 using namespace cppship;
 using namespace boost::process;
@@ -17,11 +18,12 @@ bool cppship::has_cmd(std::string_view cmd)
 int cppship::run_cmd(const std::string_view cmd)
 {
     if (spdlog::should_log(spdlog::level::info)) {
-        return system(std::string { cmd }, shell);
+        // unset CMAKE_GENERATOR: https://github.com/qqiangwu/cppship/issues/75
+        return system(std::string { cmd }, shell, env["CMAKE_GENERATOR"] = boost::none);
     }
 
     ipstream pipe;
-    child exe(std::string { cmd }, (std_out & std_err) > pipe, shell);
+    child exe(std::string { cmd }, (std_out & std_err) > pipe, shell, env["CMAKE_GENERATOR"] = boost::none);
 
     std::string line;
     while (exe.running() && std::getline(pipe, line)) {

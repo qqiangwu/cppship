@@ -1,8 +1,9 @@
-#include <gtest/gtest.h>
+#include "cppship/util/cmd.h"
+
+#include <cstdlib>
 
 #include <boost/algorithm/string/trim.hpp>
-
-#include "cppship/util/cmd.h"
+#include <gtest/gtest.h>
 
 using namespace cppship;
 
@@ -25,5 +26,13 @@ TEST(cmd, check_output)
 #ifndef _WINDOWS
     const auto empty_out = check_output("true");
     ASSERT_EQ(empty_out, "");
+#endif
+}
+
+TEST(cmd, remove_env)
+{
+#ifndef _WINDOWS
+    ::setenv("CMAKE_GENERATOR", "?", 1); // NOLINT
+    ASSERT_EQ(run_cmd("[[ $CMAKE_GENERATOR ]] && exit 1 || exit 0"), 0);
 #endif
 }

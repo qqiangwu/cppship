@@ -1,6 +1,5 @@
 #include "cppship/cmd/fmt.h"
 
-#include <iostream>
 #include <string_view>
 
 #include <boost/process/system.hpp>

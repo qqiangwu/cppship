@@ -1,4 +1,23 @@
 ---
 Language: Cpp
 BasedOnStyle: WebKit
+BinPackArguments: false
 ColumnLimit: 120
+InsertNewlineAtEOF: true
+InsertTrailingCommas: Wrapped
+IncludeBlocks: Regroup
+IncludeCategories:
+    # C headers
+  - Regex:           '^<[^/]+\.h>'
+    Priority:        1
+  - Regex:           '^<(linux|net|sys)/.*'
+    Priority:        1
+    # CPP std headers
+  - Regex:           '^<[^\./]+>'
+    Priority:        2
+    # Thirdparty headers
+  - Regex:           '^<.*'
+    Priority:        3
+    # Cppship headers
+  - Regex:           '.*'
+    Priority:        4

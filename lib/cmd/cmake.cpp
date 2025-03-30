@@ -32,8 +32,8 @@ int cmd::run_cmake(const CmakeOptions&)
     const auto declared_deps = concat(result.dependencies, result.dev_dependencies) | ranges::to<std::vector>();
     CmakeGenerator gen(&ctx.layout, ctx.manifest,
         GeneratorOptions {
-            .deps = cmake::collect_cmake_deps(result.dependencies, deps),
-            .dev_deps = cmake::collect_cmake_deps(result.dev_dependencies, deps),
+            .deps = cmake::resolve_deps(result.dependencies, deps),
+            .dev_deps = cmake::resolve_deps(result.dev_dependencies, deps),
             .injector = std::make_unique<CmakeDependencyInjector>(
                 ctx.deps_dir, declared_deps, result.resolved_dependencies, deps),
         });

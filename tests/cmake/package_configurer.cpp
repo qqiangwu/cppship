@@ -1,4 +1,5 @@
 #include "cppship/cmake/package_configurer.h"
+#include "cppship/core/dependency.h"
 #include "cppship/util/fs.h"
 #include "cppship/util/io.h"
 #include "cppship/util/repo.h"
@@ -25,7 +26,6 @@ TEST(package_configurer, HeaderOnly)
     fs::create_directory(package_dir / "include");
 
     cppship::ResolvedDependencies deps { {
-        package,
         Dependency {
             .package = package,
             .cmake_package = package,
@@ -68,7 +68,6 @@ fmt = "9.1.0"
 )");
 
     cppship::ResolvedDependencies deps { {
-        package,
         Dependency {
             .package = package,
             .cmake_package = package,
@@ -76,11 +75,11 @@ fmt = "9.1.0"
         },
     } };
     cppship::ResolvedDependencies all_deps = deps;
-    all_deps["fmt"] = {
+    all_deps.insert(Dependency {
         .package = "fmt",
         .cmake_package = "fmt",
         .cmake_target = "fmt::fmt",
-    };
+    });
 
     cmake::config_packages(deps, all_deps,
         {
@@ -130,7 +129,6 @@ fmt = "9.1.0"
     touch(lib_dir / "a_test.cpp");
 
     cppship::ResolvedDependencies deps { {
-        package,
         Dependency {
             .package = package,
             .cmake_package = package,
@@ -138,11 +136,11 @@ fmt = "9.1.0"
         },
     } };
     cppship::ResolvedDependencies all_deps = deps;
-    all_deps["fmt"] = {
+    all_deps.insert(Dependency {
         .package = "fmt",
         .cmake_package = "fmt",
         .cmake_target = "fmt::fmt",
-    };
+    });
 
     cmake::config_packages(deps, all_deps,
         {

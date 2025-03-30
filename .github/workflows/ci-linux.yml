@@ -1,20 +1,15 @@
 name: Linux
 
 on:
+  workflow_call:
   push:
-    branches: [ main ]
-  pull_request:
     branches: [ main ]
   schedule:
     - cron: "4 5 * * 0"
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-
 jobs:
   build:
-    if: ${{!contains(github.event.pull_request.title, 'skip-ci') && !contains(github.event.head_commit.message, 'skip-ci')}}
+    if: ${{!contains(github.event.head_commit.message, 'skip-ci')}}
     strategy:
       matrix:
         build_type: [ Debug, Release ]
@@ -40,11 +35,11 @@ jobs:
     env:
       CC: ${{ matrix.compiler.cc }}
       CXX: ${{ matrix.compiler.cxx }}
+      # test for issue: https://github.com/qqiangwu/cppship/issues/75
+      CMAKE_GENERATOR: "Ninja Multi-Config"
 
     steps:
     - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
 
     # Hack to deal with https://github.com/actions/runner-images/issues/8659
     - name: Fix GCC
@@ -84,16 +79,6 @@ jobs:
         cppship run --profile ${{ matrix.build_type }}
         cppship test --profile ${{ matrix.build_type }}
 
-    - name: Lint and format
-      if: matrix.build_type == 'Release' && matrix.compiler.cxx == 'clang++-14' && github.event_name == 'pull_request'
-      run: |
-        mergebase=$(git merge-base --fork-point origin/${{github.event.pull_request.base.ref}})
-        cppship fmt
-        cppship fmt -a
-        cppship fmt -c ${mergebase}
-        cppship lint -c ${mergebase}
-        cppship clean
-
     - name: Cppship init app
       run: |
         mkdir .bin && cd .bin
@@ -119,12 +104,13 @@ jobs:
 
     - name: Test cppship
       run: |
+        unset CMAKE_GENERATOR
         git clone https://github.com/qqiangwu/cppship-examples.git
         cd cppship-examples
         bash verify.sh
 
   build-gcc13:
-    if: ${{!contains(github.event.pull_request.title, 'skip-ci') && !contains(github.event.head_commit.message, 'skip-ci')}}
+    if: ${{!contains(github.event.head_commit.message, 'skip-ci')}}
     strategy:
       matrix:
         build_type: [ Debug, Release ]

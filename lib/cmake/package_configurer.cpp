@@ -14,9 +14,10 @@ using namespace fmt::literals;
 void cmake::config_packages(
     const ResolvedDependencies& cppship_deps, const ResolvedDependencies& all_deps, const ConfigOptions& options)
 {
-    for (const auto& [package, dep] : cppship_deps) {
+    for (const auto& dep : cppship_deps) {
+        const auto& package = dep.package;
         const auto& cmake_target = dep.cmake_target;
-        const auto package_dir = options.deps_dir / package;
+        const auto package_dir = options.deps_dir / dep.package;
         const auto package_manifest = package_dir / kRepoConfigFile;
         const auto package_cmake_config_file = options.out_dir / fmt::format("{}-config.cmake", package);
 
@@ -35,7 +36,7 @@ target_include_directories({target} INTERFACE {cmake_deps_dir}/{package}/include
         Manifest manifest(package_manifest);
         Layout layout(package_dir, package);
         const auto lib_target = *layout.lib();
-        const auto cmake_deps = cmake::collect_cmake_deps(manifest.dependencies(), all_deps);
+        const auto cmake_deps = cmake::resolve_deps(manifest.dependencies(), all_deps);
         cmake::CmakeLib lib({
             .name = lib_target.name,
             .include_dirs = lib_target.includes,
