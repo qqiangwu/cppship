@@ -2,9 +2,14 @@ name: Linux
 
 on:
   workflow_call:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: "4 5 * * 0"
 
 jobs:
   build:
+    if: ${{!contains(github.event.head_commit.message, 'skip-ci')}}
     strategy:
       matrix:
         build_type: [ Debug, Release ]
@@ -105,6 +110,7 @@ jobs:
         bash verify.sh
 
   build-gcc13:
+    if: ${{!contains(github.event.head_commit.message, 'skip-ci')}}
     strategy:
       matrix:
         build_type: [ Debug, Release ]
