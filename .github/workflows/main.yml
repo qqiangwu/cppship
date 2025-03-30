@@ -1,20 +1,16 @@
 name: Cppship CI
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
     branches: [ main ]
-  schedule:
-    - cron: "4 5 * * 0"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress:  ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: true
 
 jobs:
   fmt_and_lint:
-    if: ${{!contains(github.event.pull_request.title, 'skip-ci') && !contains(github.event.head_commit.message, 'skip-ci')}}
+    if: ${{!contains(github.event.pull_request.title, 'skip-ci')}}
     runs-on: macos-15
     name: Formt and Lint
     steps:
