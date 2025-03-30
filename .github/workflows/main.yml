@@ -1,0 +1,55 @@
+name: Cppship CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: "4 5 * * 0"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress:  ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  fmt_and_lint:
+    if: ${{!contains(github.event.pull_request.title, 'skip-ci') && !contains(github.event.head_commit.message, 'skip-ci')}}
+    runs-on: macos-15
+    name: Formt and Lint
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install conan
+        run: brew install conan
+
+      - name: Install cppship
+        run: brew install qqiangwu/tap/cppship
+
+      - name: Run fmt and lint
+        run: |
+          mergebase=$(git merge-base --fork-point origin/${{github.event.pull_request.base.ref}})
+          cppship build -d
+          brew install llvm@19
+          export PATH="$(brew --prefix llvm@19)/bin:$PATH"
+          cppship fmt
+          cppship fmt -c ${mergebase}
+          cppship lint -c ${mergebase}
+          cppship clean
+
+  ci_linux:
+    needs: fmt_and_lint
+    uses: ./.github/workflows/ci-linux.yml
+    name: Linux test suite
+
+  ci_macos:
+    needs: fmt_and_lint
+    uses: ./.github/workflows/ci-macos.yml
+    name: MacOS test suite
+
+  ci_windows:
+    needs: fmt_and_lint
+    uses: ./.github/workflows/ci-windows.yml
+    name: Windows test suite
