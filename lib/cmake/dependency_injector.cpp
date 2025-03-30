@@ -1,7 +1,4 @@
 #include "cppship/cmake/dependency_injector.h"
-#include "cppship/cmake/package_configurer.h"
-#include "cppship/util/fs.h"
-#include "cppship/util/io.h"
 
 #include <boost/algorithm/cxx11/any_of.hpp>
 #include <boost/algorithm/string/replace.hpp>
@@ -9,6 +6,11 @@
 #include <fmt/os.h>
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/filter.hpp>
+
+#include "cppship/cmake/package_configurer.h"
+#include "cppship/core/manifest.h"
+#include "cppship/util/fs.h"
+#include "cppship/util/io.h"
 
 using namespace cppship;
 using namespace cppship::cmake;
@@ -283,7 +285,10 @@ FetchContent_MakeAvailable({package})
 message("-- Deps: download {package} from {git}::{commit}")
 
 )",
-            "package"_a = dep.package, "git"_a = desc.git, "commit"_a = desc.commit, "deps_dir"_a = kCmakeDepsDir);
+            "package"_a = dep.package,
+            "git"_a = desc.git,
+            "commit"_a = desc.commit,
+            "deps_dir"_a = kCmakeDepsDir);
     }
 
     // commit file
@@ -293,7 +298,8 @@ message("-- Deps: download {package} from {git}::{commit}")
 
     auto content_fix = [deps_dir = deps_dir.generic_string()](
                            std::string& str) { boost::replace_all(str, deps_dir, kCmakeDepsDir); };
-    cmake::config_packages(cppship_deps, all_deps,
+    cmake::config_packages(cppship_deps,
+        all_deps,
         {
             .deps_dir = deps_dir,
             .out_dir = cmake_util_dir,
@@ -306,7 +312,7 @@ message("-- Deps: download {package} from {git}::{commit}")
 
 }
 
-void CmakeDependencyInjector::inject(std::ostream& out, const Manifest&)
+void CmakeDependencyInjector::inject(std::ostream& out, const PackageManifest&)
 {
     if (mDeclaredDeps.empty()) {
         return;

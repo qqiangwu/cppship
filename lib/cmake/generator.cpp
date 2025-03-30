@@ -1,12 +1,6 @@
 #include "cppship/cmake/generator.h"
-#include "cppship/cmake/bin.h"
-#include "cppship/cmake/cfg_predicate.h"
-#include "cppship/cmake/dep.h"
-#include "cppship/cmake/group.h"
-#include "cppship/cmake/lib.h"
-#include "cppship/cmake/naming.h"
-#include "cppship/core/manifest.h"
-#include "cppship/exception.h"
+
+#include <sstream>
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/replace.hpp>
@@ -18,6 +12,16 @@
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/concat.hpp>
 #include <range/v3/view/transform.hpp>
+
+#include "cppship/cmake/bin.h"
+#include "cppship/cmake/cfg_predicate.h"
+#include "cppship/cmake/dep.h"
+#include "cppship/cmake/group.h"
+#include "cppship/cmake/lib.h"
+#include "cppship/cmake/naming.h"
+#include "cppship/core/manifest.h"
+#include "cppship/core/resolver.h"
+#include "cppship/exception.h"
 
 using namespace ranges::views;
 
@@ -70,7 +74,8 @@ std::vector<cmake::Dep> cmake::resolve_deps(
     return result;
 }
 
-CmakeGenerator::CmakeGenerator(gsl::not_null<const Layout*> layout, const Manifest& manifest, GeneratorOptions options)
+CmakeGenerator::CmakeGenerator(
+    gsl::not_null<const Layout*> layout, gsl::not_null<const PackageManifest*> manifest, GeneratorOptions options)
     : mLayout(layout)
     , mManifest(manifest)
     , mDeps(std::move(options.deps))
@@ -101,15 +106,7 @@ std::string CmakeGenerator::build() &&
 void CmakeGenerator::emit_header_()
 {
     mOut << "cmake_minimum_required(VERSION 3.17)\n"
-         << fmt::format("project({} VERSION {})\n", mName, mManifest.version()) << R"(
-include(CTest)
-enable_testing()
-
-if(CMAKE_EXPORT_COMPILE_COMMANDS)
-    set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES})
-endif()
-
-)";
+         << fmt::format("project({} VERSION {})\n\n", mName, mManifest->version());
 
     mOut << "# cpp options\n";
     fill_default_profile_();
@@ -124,13 +121,13 @@ set(CMAKE_CXX_STANDARD {})
 set(CMAKE_CXX_STANDARD_REQUIRED On)
 set(CMAKE_CXX_EXTENSIONS Off)
 )",
-        mManifest.cxx_std());
+        mManifest->cxx_std());
 }
 
 void CmakeGenerator::emit_dependency_injector_()
 {
     if (mInjector) {
-        mInjector->inject(mOut, mManifest);
+        mInjector->inject(mOut, *mManifest);
         return;
     }
 
@@ -335,29 +332,32 @@ find_package(GTest REQUIRED)
 void CmakeGenerator::emit_footer_()
 {
     mOut << "\n# Groups\n"
-         << fmt::format(
-                "add_custom_target({} DEPENDS {})\n", cmake::kCppshipGroupBinaries, boost::join(mBinaryTargets, " "))
-         << fmt::format(
-                "add_custom_target({} DEPENDS {})\n", cmake::kCppshipGroupExamples, boost::join(mExampleTargets, " "))
-         << fmt::format(
-                "add_custom_target({} DEPENDS {})\n", cmake::kCppshipGroupBenches, boost::join(mBenchTargets, " "))
-         << fmt::format(
-                "add_custom_target({} DEPENDS {})\n", cmake::kCppshipGroupTests, boost::join(mTestTargets, " "));
-
-    mOut << "\n# Footer\n"
-         << R"(set(CPACK_PROJECT_NAME ${PROJECT_NAME})
-set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
-include(CPack)
-)";
+         << fmt::format("add_custom_target({}_{} DEPENDS {})\n", mName, cmake::kCppshipGroupLibs, mLib.value_or(""))
+         << fmt::format("add_custom_target({}_{} DEPENDS {})\n",
+                mName,
+                cmake::kCppshipGroupBinaries,
+                boost::join(mBinaryTargets, " "))
+         << fmt::format("add_custom_target({}_{} DEPENDS {})\n",
+                mName,
+                cmake::kCppshipGroupExamples,
+                boost::join(mExampleTargets, " "))
+         << fmt::format("add_custom_target({}_{} DEPENDS {})\n",
+                mName,
+                cmake::kCppshipGroupBenches,
+                boost::join(mBenchTargets, " "))
+         << fmt::format("add_custom_target({}_{} DEPENDS {})\n",
+                mName,
+                cmake::kCppshipGroupTests,
+                boost::join(mTestTargets, " "));
 }
 
 namespace {
 
 class ProfileOptionGen {
-    std::ostream& mOut;
+    std::ostream& mOut; // NOLINT
 
 public:
-    ProfileOptionGen(std::ostream& out)
+    explicit ProfileOptionGen(std::ostream& out)
         : mOut(out)
     {
     }
@@ -435,7 +435,7 @@ public:
 
 void CmakeGenerator::fill_default_profile_()
 {
-    const auto& default_profile = mManifest.default_profile();
+    const auto& default_profile = mManifest->default_profile();
 
     ProfileOptionGen appender(mOut);
     appender.output(default_profile.config);
@@ -449,7 +449,7 @@ void CmakeGenerator::fill_default_profile_()
 
 void CmakeGenerator::fill_profile_(Profile profile)
 {
-    const auto& options = mManifest.profile(profile);
+    const auto& options = mManifest->profile(profile);
     const auto& profile_str = to_string(profile);
 
     ProfileOptionGen appender(mOut);
@@ -460,4 +460,100 @@ void CmakeGenerator::fill_profile_(Profile profile)
         appender.output(profile_str, config, "\t");
         mOut << "endif()\n\n";
     }
+}
+
+std::string SimpleGenerator::build() &&
+{
+    std::ostringstream oss;
+
+    oss << CmakeGenerator(mLayout, mManifest, std::move(mOptions)).build();
+    oss << "# Footer"
+        << R"(
+    include(CTest)
+    enable_testing()
+
+    if(CMAKE_EXPORT_COMPILE_COMMANDS)
+        set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES})
+    endif()
+
+)";
+
+    oss << "\n# Groups\n"
+        << fmt::format("add_custom_target({0} DEPENDS {1}_{0})\n", cmake::kCppshipGroupLibs, mManifest->name())
+        << fmt::format("add_custom_target({0} DEPENDS {1}_{0})\n", cmake::kCppshipGroupBinaries, mManifest->name())
+        << fmt::format("add_custom_target({0} DEPENDS {1}_{0})\n", cmake::kCppshipGroupExamples, mManifest->name())
+        << fmt::format("add_custom_target({0} DEPENDS {1}_{0})\n", cmake::kCppshipGroupBenches, mManifest->name())
+        << fmt::format("add_custom_target({0} DEPENDS {1}_{0})\n", cmake::kCppshipGroupTests, mManifest->name());
+
+    return std::move(oss).str();
+}
+
+WorkspaceGenerator::WorkspaceGenerator(
+    const fs::path& deps_dir, std::function<std::string(std::string_view, std::string_view)> package_handler)
+    : mDepsDir(deps_dir)
+    , mPackageHandler(std::move(package_handler))
+{
+    mOut << "cmake_minimum_required(VERSION 3.17)\n" << fmt::format("project(cppship_workspace VERSION 1.0)\n\n");
+}
+
+void WorkspaceGenerator::add(
+    const Layout& layout, const PackageManifest& manifest, const ResolvedDependencies& resolved_deps)
+{
+    Resolver resolver(mDepsDir, manifest, nullptr);
+    const auto result = std::move(resolver).resolve();
+
+    CmakeGenerator gen(&layout,
+        &manifest,
+        GeneratorOptions {
+            .deps = cmake::resolve_deps(result.dependencies, resolved_deps),
+            .dev_deps = cmake::resolve_deps(result.dev_dependencies, resolved_deps),
+        });
+
+    const auto cmake_config = mPackageHandler(manifest.name(), std::move(gen).build());
+
+    mOut << fmt::format("include({})\n", cmake_config);
+    mPackagesAdded.emplace_back(manifest.name());
+}
+
+namespace {
+
+std::string join_package_groups(std::span<const std::string> packages, std::string_view group)
+{
+    return boost::join(
+        packages | transform([group](const std::string& s) { return fmt::format("{}_{}", s, group); }), " ");
+}
+
+}
+
+std::string WorkspaceGenerator::build() &&
+{
+    mOut << "\n# Footer"
+         << R"(
+include(CTest)
+enable_testing()
+
+if(CMAKE_EXPORT_COMPILE_COMMANDS)
+    set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES})
+endif()
+
+)";
+
+    mOut << "\n# Groups\n"
+         << fmt::format("add_custom_target({} DEPENDS {})\n",
+                cmake::kCppshipGroupLibs,
+                join_package_groups(mPackagesAdded, kCppshipGroupLibs))
+         << fmt::format("add_custom_target({} DEPENDS {})\n",
+                cmake::kCppshipGroupBinaries,
+                join_package_groups(mPackagesAdded, kCppshipGroupBinaries))
+         << fmt::format("add_custom_target({} DEPENDS {})\n",
+                cmake::kCppshipGroupExamples,
+                join_package_groups(mPackagesAdded, kCppshipGroupExamples))
+         << fmt::format("add_custom_target({} DEPENDS {})\n",
+                cmake::kCppshipGroupBenches,
+                join_package_groups(mPackagesAdded, kCppshipGroupBenches))
+         << fmt::format("add_custom_target({} DEPENDS {})\n",
+                cmake::kCppshipGroupTests,
+                join_package_groups(mPackagesAdded, kCppshipGroupTests));
+
+    return std::move(mOut).str();
 }

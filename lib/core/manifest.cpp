@@ -1,17 +1,24 @@
 #include "cppship/core/manifest.h"
-#include "cppship/exception.h"
-#include "cppship/util/fs.h"
-#include "cppship/util/io.h"
 
 #include <array>
 #include <cstdlib>
+#include <filesystem>
 #include <set>
 
 #include <boost/algorithm/string.hpp>
 #include <fmt/os.h>
+#include <range/v3/action/push_back.hpp>
 #include <range/v3/algorithm/any_of.hpp>
 #include <range/v3/view/concat.hpp>
 #include <toml.hpp>
+#include <toml/get.hpp>
+#include <toml/value.hpp>
+
+#include "cppship/exception.h"
+#include "cppship/util/dep.h"
+#include "cppship/util/fs.h"
+#include "cppship/util/io.h"
+#include "cppship/util/repo.h"
 
 using namespace cppship;
 using namespace ranges;
@@ -184,92 +191,55 @@ ProfileConfig parse_profile_options(const toml::value& manifest, const std::stri
 
 }
 
-Manifest::Manifest(const fs::path& file)
+PackageManifest::PackageManifest(const toml::value& value)
 {
-    if (!fs::exists(file)) {
-        throw Error { "manifest file not exist" };
-    }
+    const auto package = get(value, "package");
+    mName = get<std::string>(package, "name");
+    mVersion = get<std::string>(package, "version");
+    mCxxStd = get_cxx_std(package);
 
-    try {
-        const auto value = toml::parse(file);
+    mDependencies = parse_dependencies(value, "dependencies");
+    mDevDependencies = parse_dependencies(value, "dev-dependencies");
 
-        // parse [package]
-        const auto package = get(value, "package");
-        mName = get<std::string>(package, "name");
-        mVersion = get<std::string>(package, "version");
-        mCxxStd = get_cxx_std(package);
+    check_dependency_dups(mDependencies, mDevDependencies);
 
-        mDependencies = parse_dependencies(value, "dependencies");
-        mDevDependencies = parse_dependencies(value, "dev-dependencies");
+    // parse [profile] and [profile.debug]
+    mProfileDefault.config = parse_profile_options(value, "profile");
 
-        check_dependency_dups(mDependencies, mDevDependencies);
+    const auto profile = find_or(value, "profile", {});
+    mProfileDebug.config = parse_profile_options(profile, "debug");
+    mProfileRelease.config = parse_profile_options(profile, "release");
 
-        // parse [profile] and [profile.debug]
-        mProfileDefault.config = parse_profile_options(value, "profile");
-
-        const auto profile = find_or(value, "profile", {});
-        mProfileDebug.config = parse_profile_options(profile, "debug");
-        mProfileRelease.config = parse_profile_options(profile, "release");
-
-        // parse [target.<cfg>.profile]
-        for (const auto& [condition_str, config] : get_table(value, "target")) {
-            if (!config.contains("profile")) {
-                continue;
-            }
-
-            const auto condition = core::parse_cfg(condition_str);
-
-            mProfileDefault.conditional_configs.push_back({
-                .condition = condition,
-                .config = parse_profile_options(config, "profile"),
-            });
-
-            const auto profile = get_table(config, "profile");
-            if (profile.contains("debug")) {
-                mProfileDebug.conditional_configs.push_back({
-                    .condition = condition,
-                    .config = parse_profile_options(profile, "debug"),
-                });
-            }
-            if (profile.contains("release")) {
-                mProfileRelease.conditional_configs.push_back({
-                    .condition = condition,
-                    .config = parse_profile_options(profile, "release"),
-                });
-            }
+    // parse [target.<cfg>.profile]
+    for (const auto& [condition_str, config] : get_table(value, "target")) {
+        if (!config.contains("profile")) {
+            continue;
         }
 
-        // set defaults
-        set_defaults_();
-    } catch (const std::out_of_range& e) {
-        throw Error { e.what() };
-    } catch (const toml::exception& e) {
-        throw Error { fmt::format("invalid manifest format at {}", e.what()) };
+        const auto condition = core::parse_cfg(condition_str);
+
+        mProfileDefault.conditional_configs.push_back({
+            .condition = condition,
+            .config = parse_profile_options(config, "profile"),
+        });
+
+        const auto profile = get_table(config, "profile");
+        if (profile.contains("debug")) {
+            mProfileDebug.conditional_configs.push_back({
+                .condition = condition,
+                .config = parse_profile_options(profile, "debug"),
+            });
+        }
+        if (profile.contains("release")) {
+            mProfileRelease.conditional_configs.push_back({
+                .condition = condition,
+                .config = parse_profile_options(profile, "release"),
+            });
+        }
     }
 }
 
-void Manifest::set_defaults_()
-{
-    // TODO
-    /*
-    const bool ubsan_present
-        = any_of(std::array { &mProfileDebug, &mProfileDebug, &mProfileRelease }, [](const ProfileOptions* profile) {
-              return profile->config.ubsan.has_value()
-                  || any_of(profile->conditional_configs, [](const auto& cc) { return cc.config.ubsan.has_value(); });
-          });
-    if (ubsan_present) {
-        return;
-    }
-
-    // in debug profile, enable ubsan if not msvc
-    mProfileDebug.conditional_configs.push_back({
-        .condition = core::CfgNot { { core::cfg::Compiler::msvc } },
-        .config = { .ubsan = true },
-    });
-    */
-}
-
-const ProfileOptions& Manifest::profile(Profile prof) const
+const ProfileOptions& PackageManifest::profile(Profile prof) const
 {
     switch (prof) {
     case Profile::debug:
@@ -282,13 +252,59 @@ const ProfileOptions& Manifest::profile(Profile prof) const
     std::abort();
 }
 
+Manifest::Manifest(const fs::path& file)
+{
+    if (!fs::exists(file)) {
+        throw Error { "manifest file not exist" };
+    }
+
+    try {
+        const auto value = toml::parse(file);
+        if (!value.contains("workspace")) {
+            const auto& p = packages_.emplace<PackageManifest>(value);
+            mDependencies = p.dependencies();
+            mDevDependencies = p.dev_dependencies();
+            return;
+        }
+
+        auto& packages = packages_.emplace<std::map<fs::path, PackageManifest>>();
+        const auto& workspace = ::get(value, "workspace");
+        if (!workspace.contains("members")) {
+            return;
+        }
+
+        std::set<std::string> package_names;
+        for (const auto& member : get_list(workspace, "members")) {
+            auto package_path = fs::path(member);
+            const auto package_manifest_path = package_path / kRepoConfigFile;
+            if (!fs::exists(package_manifest_path)) {
+                throw Error { fmt::format("invalid workspace member {}", member) };
+            }
+
+            const auto& it
+                = packages.emplace(std::move(package_path), PackageManifest { toml::parse(package_manifest_path) })
+                      .first->second;
+            if (!package_names.emplace(it.name()).second) {
+                throw Error { fmt::format("conflict package name: {}", it.name()) };
+            }
+
+            merge_to(it.dependencies(), mDependencies);
+            merge_to(it.dev_dependencies(), mDevDependencies);
+        }
+    } catch (const std::out_of_range& e) {
+        throw Error { e.what() };
+    } catch (const toml::exception& e) {
+        throw Error { fmt::format("invalid manifest format at {}", e.what()) };
+    }
+}
+
 void cppship::generate_manifest(std::string_view name, CxxStd std, const fs::path& dir)
 {
     if (!fs::exists(dir)) {
         fs::create_directory(dir);
     }
 
-    const auto manifest = dir / "cppship.toml";
+    const auto manifest = dir / kRepoConfigFile;
     if (fs::exists(manifest)) {
         throw Error { "manifest already exist" };
     }

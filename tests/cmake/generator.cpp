@@ -1,12 +1,13 @@
 #include "cppship/cmake/generator.h"
-#include "cppship/core/manifest.h"
-#include "cppship/util/fs.h"
-#include "cppship/util/io.h"
-#include "cppship/util/repo.h"
 
 #include <boost/algorithm/string/find.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <gtest/gtest.h>
+
+#include "cppship/core/manifest.h"
+#include "cppship/util/fs.h"
+#include "cppship/util/io.h"
+#include "cppship/util/repo.h"
 
 using namespace cppship;
 using namespace cppship::cmake;
@@ -36,7 +37,7 @@ TEST(generator, BinVersion)
 name = "abc-abc-abc"
 version = "0.1.0"
     )");
-    CmakeGenerator gen(&layout, meta, {});
+    CmakeGenerator gen(&layout, meta.get_if_package(), {});
     const auto content = std::move(gen).build();
     EXPECT_TRUE(boost::contains(content, "target_compile_definitions(tmp PRIVATE ABC_ABC_ABC_VERSION="));
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <set>
 #include <string>
 #include <thread>
@@ -8,9 +9,10 @@
 #include <gsl/narrow>
 
 #include "cppship/core/dependency.h"
-#include "cppship/core/layout.h"
 #include "cppship/core/manifest.h"
 #include "cppship/core/profile.h"
+#include "cppship/core/workspace.h"
+#include "cppship/util/fs.h"
 #include "cppship/util/repo.h"
 
 namespace cppship::cmd {
@@ -29,8 +31,11 @@ struct BuildContext {
     std::string profile = "Debug";
 
     fs::path root = get_project_root();
+    fs::path package_root = get_package_root();
+
     fs::path build_dir = root / kBuildPath;
-    fs::path deps_dir = build_dir / "deps";
+    fs::path packages_dir = build_dir / kBuildPackagesPath;
+    fs::path deps_dir = build_dir / kBuildDepsPath;
     fs::path profile_dir = build_dir / boost::to_lower_copy(profile);
     fs::path metafile = root / "cppship.toml";
 
@@ -41,7 +46,7 @@ struct BuildContext {
     fs::path dependency_file = profile_dir / "dependency.toml";
 
     Manifest manifest { metafile };
-    Layout layout { root, manifest.name() };
+    Workspace workspace { root, manifest };
 
     explicit BuildContext(Profile profile_)
         : profile(to_string(profile_))
@@ -67,6 +72,12 @@ void conan_install(const BuildContext& ctx);
 
 void cppship_install(
     const BuildContext& ctx, const ResolvedDependencies& cppship_deps, const ResolvedDependencies& all_deps);
+
+namespace cmd_internals {
+
+    std::string cmake_gen_config(const BuildContext& ctx, bool for_standalone_cmake = false);
+
+}
 
 void cmake_setup(const BuildContext& ctx);
 

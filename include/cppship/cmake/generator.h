@@ -9,6 +9,7 @@
 
 #include "cppship/cmake/dep.h"
 #include "cppship/cmake/dependency_injector.h"
+#include "cppship/core/dependency.h"
 #include "cppship/core/layout.h"
 #include "cppship/core/manifest.h"
 
@@ -22,7 +23,8 @@ struct GeneratorOptions {
 
 class CmakeGenerator {
 public:
-    CmakeGenerator(gsl::not_null<const Layout*> layout, const Manifest& manifest, GeneratorOptions options = {});
+    CmakeGenerator(gsl::not_null<const Layout*> layout, gsl::not_null<const PackageManifest*> manifest,
+        GeneratorOptions options = {});
 
     std::string build() &&;
 
@@ -55,12 +57,12 @@ private:
     std::ostringstream mOut;
 
     gsl::not_null<const Layout*> mLayout;
+    gsl::not_null<const PackageManifest*> mManifest;
 
-    Manifest mManifest;
     std::vector<cmake::Dep> mDeps;
     std::vector<cmake::Dep> mDevDeps;
 
-    std::string_view mName = mManifest.name();
+    std::string_view mName = mManifest->name();
 
     std::unique_ptr<cmake::DependencyInjector> mInjector;
 
@@ -69,6 +71,42 @@ private:
     std::set<std::string> mExampleTargets;
     std::set<std::string> mBenchTargets;
     std::set<std::string> mTestTargets;
+};
+
+// generate cmake config for single package project
+class SimpleGenerator {
+public:
+    SimpleGenerator(gsl::not_null<const Layout*> layout, gsl::not_null<const PackageManifest*> manifest,
+        GeneratorOptions options = {})
+        : mLayout(layout)
+        , mManifest(manifest)
+        , mOptions(std::move(options))
+    {
+    }
+
+    std::string build() &&;
+
+private:
+    gsl::not_null<const Layout*> mLayout;
+    gsl::not_null<const PackageManifest*> mManifest;
+    GeneratorOptions mOptions;
+};
+
+class WorkspaceGenerator {
+public:
+    WorkspaceGenerator(
+        const fs::path& deps_dir, std::function<std::string(std::string_view, std::string_view)> package_handler);
+
+    void add(const Layout& layout, const PackageManifest& manifest, const ResolvedDependencies& resolved_deps);
+
+    std::string build() &&;
+
+private:
+    fs::path mDepsDir;
+    std::function<std::string(std::string_view, std::string)> mPackageHandler;
+
+    std::ostringstream mOut;
+    std::vector<std::string> mPackagesAdded;
 };
 
 }

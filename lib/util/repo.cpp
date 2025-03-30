@@ -1,17 +1,16 @@
 #include "cppship/util/repo.h"
 
-#include <algorithm>
 #include <array>
 #include <filesystem>
-#include <stdexcept>
+#include <optional>
 
 #include <range/v3/algorithm/contains.hpp>
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view.hpp>
+#include <toml/parser.hpp>
 
 #include "cppship/exception.h"
 #include "cppship/util/cmd.h"
-#include "cppship/util/fs.h"
 #include "cppship/util/string.h"
 
 using namespace cppship;
@@ -21,9 +20,41 @@ namespace {
 
 constexpr std::array kSourceExtension { ".cpp", ".h" };
 
+std::optional<fs::path> get_workspace_root(const fs::path& root)
+{
+    auto current = root;
+    while (true) {
+        const auto manifest = current / kRepoConfigFile;
+        if (fs::exists(manifest)) {
+            const auto value = toml::parse(manifest);
+            if (value.contains("workspace")) {
+                return current;
+            }
+        }
+
+        auto parent = current.parent_path();
+        if (current == parent) {
+            return std::nullopt;
+        }
+
+        current = std::move(parent);
+    }
+}
+
 }
 
 fs::path cppship::get_project_root()
+{
+    auto p = get_package_root();
+    auto workspace_root = get_workspace_root(p);
+    if (workspace_root.has_value()) {
+        return std::move(workspace_root).value();
+    }
+
+    return p;
+}
+
+fs::path cppship::get_package_root()
 {
     auto current_dir = fs::current_path();
 

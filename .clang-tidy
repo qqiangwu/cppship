@@ -252,7 +252,6 @@ Checks: |
   modernize-replace-auto-ptr
   modernize-replace-disallow-copy-and-assign-macro
   modernize-replace-random-shuffle
-  modernize-return-braced-init-list
   modernize-shrink-to-fit
   modernize-type-traits
   modernize-unary-static-assert
@@ -402,6 +401,7 @@ CheckOptions:
 # -modernize-use-trailing-return-type
 # -modernize-pass-by-value
 #     Useless
+# -modernize-return-braced-init-list
 # -readability-magic-numbers
 #     Let's not deal with people doing ridiculous things to hack around this. If it bites them, it bites them.
 # -readability-named-parameter

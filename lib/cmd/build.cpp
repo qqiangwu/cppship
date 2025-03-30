@@ -1,17 +1,6 @@
 #include "cppship/cmd/build.h"
-#include "cppship/cmake/generator.h"
-#include "cppship/cmake/group.h"
-#include "cppship/cmake/package_configurer.h"
-#include "cppship/core/compiler.h"
-#include "cppship/core/dependency.h"
-#include "cppship/core/resolver.h"
-#include "cppship/exception.h"
-#include "cppship/util/cmd.h"
-#include "cppship/util/fs.h"
-#include "cppship/util/git.h"
-#include "cppship/util/io.h"
-#include "cppship/util/log.h"
 
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -28,6 +17,23 @@
 #include <range/v3/view/transform.hpp>
 #include <spdlog/spdlog.h>
 #include <toml.hpp>
+#include <toml/get.hpp>
+#include <toml/value.hpp>
+
+#include "cppship/cmake/dependency_injector.h"
+#include "cppship/cmake/generator.h"
+#include "cppship/cmake/group.h"
+#include "cppship/cmake/package_configurer.h"
+#include "cppship/core/compiler.h"
+#include "cppship/core/dependency.h"
+#include "cppship/core/layout.h"
+#include "cppship/core/resolver.h"
+#include "cppship/exception.h"
+#include "cppship/util/cmd.h"
+#include "cppship/util/fs.h"
+#include "cppship/util/git.h"
+#include "cppship/util/io.h"
+#include "cppship/util/log.h"
 
 using namespace cppship;
 using namespace boost::process;
@@ -135,7 +141,7 @@ void cmd::conan_setup(const BuildContext& ctx)
     }
 
     status("dependency", "start resolving");
-    Resolver resolver(ctx.deps_dir, &ctx.manifest, &util::git_clone);
+    Resolver resolver(ctx.deps_dir, ctx.manifest, &util::git_clone);
     const auto result = std::move(resolver).resolve();
 
     status("dependency", "generate conanfile");
@@ -181,8 +187,10 @@ void cmd::conan_install(const BuildContext& ctx)
         return;
     }
 
-    const auto cmd = fmt::format("conan install {} -of {}/conan -pr {} --build=missing", ctx.build_dir.string(),
-        ctx.profile_dir.string(), ctx.conan_profile_path.string());
+    const auto cmd = fmt::format("conan install {} -of {}/conan -pr {} --build=missing",
+        ctx.build_dir.string(),
+        ctx.profile_dir.string(),
+        ctx.conan_profile_path.string());
 
     status("dependency", "install dependencies: {}", cmd);
     int res = run_cmd(cmd);
@@ -210,39 +218,106 @@ void cmd::cppship_install(
     cmake::config_packages(cppship_deps, all_deps, { .deps_dir = ctx.deps_dir });
 }
 
+namespace {
+
+std::unique_ptr<cmake::DependencyInjector> create_injector(bool for_standalone_cmake, const cmd::BuildContext& ctx,
+    const ResolvedDependencies& resolved_deps, const ResolveResult& result)
+{
+    if (!for_standalone_cmake) {
+        return nullptr;
+    }
+
+    return std::make_unique<cmake::CmakeDependencyInjector>(ctx.deps_dir,
+        rng::concat(result.dependencies, result.dev_dependencies) | ranges::to<std::vector>(),
+        result.resolved_dependencies,
+        resolved_deps);
+}
+
+}
+
+std::string cmd::cmd_internals::cmake_gen_config(const BuildContext& ctx, bool for_standalone_cmake)
+{
+    ResolvedDependencies resolved_deps = toml::get<ResolvedDependencies>(toml::parse(ctx.dependency_file));
+
+    if (const auto* package = ctx.manifest.get_if_package()) {
+        Resolver resolver(ctx.deps_dir, *package, nullptr);
+        const auto result = std::move(resolver).resolve();
+
+        SimpleGenerator gen(&ctx.workspace.as_package(),
+            package,
+            GeneratorOptions {
+                .deps = cmake::resolve_deps(result.dependencies, resolved_deps),
+                .dev_deps = cmake::resolve_deps(result.dev_dependencies, resolved_deps),
+                .injector = create_injector(for_standalone_cmake, ctx, resolved_deps, result),
+            });
+
+        return std::move(gen).build();
+    }
+
+    fs::create_directory(ctx.packages_dir);
+
+    WorkspaceGenerator gen(ctx.deps_dir, [&ctx](std::string_view package, std::string_view content) {
+        auto cmake_config = ctx.packages_dir / fmt::format("{}.cmake", package);
+        write(cmake_config, content);
+        return cmake_config.string();
+    });
+
+    for (const auto& [path, layout] : ctx.workspace) {
+        const auto* manifest = ctx.manifest.get(path);
+        enforce(manifest != nullptr, "manifest and workspace inconsistent");
+
+        gen.add(layout, *manifest, resolved_deps);
+    }
+
+    return std::move(gen).build();
+}
+
+namespace {
+
+std::set<std::string> collect_lib_targets(const Workspace& workspace)
+{
+    return rng::values(workspace) | rng::transform(&Layout::lib)
+        | rng::filter([](const auto& lib) { return lib.has_value(); })
+        | rng::transform([](const auto& lib) { return lib.value().name; }) | ranges::to<std::set>();
+}
+
+std::set<std::string> collect_saved_libs(const toml::value& value)
+{
+    return toml::find_or(value, "libs", {}).as_array()
+        | rng::transform([](const auto& val) { return val.as_string().str; }) | ranges::to<std::set>();
+}
+
+}
+
 void cmd::cmake_setup(const BuildContext& ctx)
 {
     const auto& inventory_file = ctx.inventory_file;
 
-    const auto all_files = ctx.layout.all_files();
+    const auto all_files = ctx.workspace.list_files();
     const auto files
         = all_files | rng::transform([](const auto& file) { return file.string(); }) | ranges::to<std::set>();
+    const auto lib_targets = collect_lib_targets(ctx.workspace);
     if (fs::exists(inventory_file)) {
         const auto saved_inventory = toml::parse(inventory_file);
         const auto saved = saved_inventory.at("files").as_array()
             | rng::transform([](const auto& val) { return val.as_string().str; });
-        const bool has_lib = saved_inventory.at("lib").as_boolean();
-        if (ranges::equal(files, saved) && !ctx.is_expired(inventory_file) && has_lib == ctx.layout.lib().has_value()) {
+        const auto saved_libs = collect_saved_libs(saved_inventory);
+        // the add of new header-only libs do not change source file list
+        if (ranges::equal(files, saved) && !ctx.is_expired(inventory_file) && lib_targets == saved_libs) {
             debug("files not changed, skip");
             return;
         }
     }
 
     status("config", "generate cmake files");
-    Resolver resolver(ctx.deps_dir, &ctx.manifest, nullptr);
-    const auto result = std::move(resolver).resolve();
-
-    ResolvedDependencies deps = toml::get<ResolvedDependencies>(toml::parse(ctx.dependency_file));
-    CmakeGenerator gen(&ctx.layout, ctx.manifest,
-        GeneratorOptions {
-            .deps = cmake::resolve_deps(result.dependencies, deps),
-            .dev_deps = cmake::resolve_deps(result.dev_dependencies, deps),
-        });
-    write(ctx.build_dir / "CMakeLists.txt", std::move(gen).build());
+    write(ctx.build_dir / "CMakeLists.txt", cmd_internals::cmake_gen_config(ctx));
 
     const std::string cmd = fmt::format("cmake -B {} -S build -DCMAKE_BUILD_TYPE={} -DCMAKE_EXPORT_COMPILE_COMMANDS=ON "
                                         "-DCONAN_GENERATORS_FOLDER={} -DCPPSHIP_DEPS_DIR={}",
-        ctx.profile_dir.string(), ctx.profile, (ctx.profile_dir / "conan").string(), ctx.deps_dir.string());
+        ctx.profile_dir.string(),
+        ctx.profile,
+        (ctx.profile_dir / "conan").string(),
+        ctx.deps_dir.string());
 
     status("config", "config cmake: {}", cmd);
     const int res = run_cmd(cmd);
@@ -256,13 +331,13 @@ void cmd::cmake_setup(const BuildContext& ctx)
 
     toml::value value;
     value["files"] = files;
-    value["lib"] = ctx.layout.lib().has_value();
+    value["libs"] = lib_targets;
     write(inventory_file, toml::format(value));
 }
 
 namespace {
 
-std::string_view to_cmake_group(cmd::BuildGroup group, const std::string_view lib)
+std::string_view to_cmake_group(cmd::BuildGroup group)
 {
     using namespace cmd;
     using namespace cmake;
@@ -281,7 +356,7 @@ std::string_view to_cmake_group(cmd::BuildGroup group, const std::string_view li
         return kCppshipGroupExamples;
 
     case BuildGroup::lib:
-        return lib;
+        return kCppshipGroupLibs;
     }
 
     std::abort();
@@ -291,7 +366,9 @@ std::string_view to_cmake_group(cmd::BuildGroup group, const std::string_view li
 
 int cmd::cmake_build(const BuildContext& ctx, const BuildOptions& options)
 {
-    auto cmd = fmt::format("cmake --build {} -j {} --config {}", ctx.profile_dir.string(), options.max_concurrency,
+    auto cmd = fmt::format("cmake --build {} -j {} --config {}",
+        ctx.profile_dir.string(),
+        options.max_concurrency,
         to_string(options.profile));
     if (options.target) {
         cmd += fmt::format(" --target {}", *options.target);
@@ -299,7 +376,7 @@ int cmd::cmake_build(const BuildContext& ctx, const BuildOptions& options)
         cmd += fmt::format(" --target {}", cmake::kCppshipGroupBinaries);
     } else {
         for (const auto group : options.groups) {
-            cmd += fmt::format(" --target {}", to_cmake_group(group, ctx.manifest.name()));
+            cmd += fmt::format(" --target {}", to_cmake_group(group));
         }
     }
 

@@ -1,3 +1,5 @@
+#include "cppship/cmd/test.h"
+
 #include <cstdlib>
 
 #include <boost/process/system.hpp>
@@ -6,7 +8,7 @@
 
 #include "cppship/cmake/naming.h"
 #include "cppship/cmd/build.h"
-#include "cppship/cmd/test.h"
+#include "cppship/core/workspace.h"
 #include "cppship/util/fs.h"
 #include "cppship/util/log.h"
 
@@ -16,9 +18,11 @@ int cmd::run_test(const TestOptions& options)
 {
     cmake::NameTargetMapper mapper;
     BuildContext ctx(options.profile);
+    const auto& layout = enforce_default_package(ctx.workspace);
+
     BuildOptions build_opts { .profile = options.profile };
     if (options.target && !options.rerun_failed) {
-        if (!ctx.layout.test(*options.target)) {
+        if (!layout.test(*options.target)) {
             throw Error { fmt::format("test `{}` not found", *options.target) };
         }
 

@@ -1,12 +1,13 @@
 #include "cppship/cmake/package_configurer.h"
+
+#include <fmt/core.h>
+#include <fmt/format.h>
+
 #include "cppship/cmake/lib.h"
 #include "cppship/core/layout.h"
 #include "cppship/core/manifest.h"
 #include "cppship/util/io.h"
 #include "cppship/util/repo.h"
-
-#include <fmt/core.h>
-#include <fmt/format.h>
 
 using namespace cppship;
 using namespace fmt::literals;
@@ -27,20 +28,29 @@ void cmake::config_packages(
 add_library({target} INTERFACE IMPORTED)
 target_include_directories({target} INTERFACE {cmake_deps_dir}/{package}/include)
 )",
-                    "target"_a = cmake_target, "package"_a = dep.package, "cmake_deps_dir"_a = options.cmake_deps_dir));
+                    "target"_a = cmake_target,
+                    "package"_a = dep.package,
+                    "cmake_deps_dir"_a = options.cmake_deps_dir));
 
             continue;
         }
 
         // TODO(wuqq): refine generation, apply cxxflags and definitions
         Manifest manifest(package_manifest);
+        if (manifest.is_workspace()) {
+            throw Error { "workspace {} is cannot be dependency" };
+        }
+
         Layout layout(package_dir, package);
-        const auto lib_target = *layout.lib();
+        const auto lib_target = layout.lib();
+        if (!lib_target.has_value()) {
+            throw Error { fmt::format("package {} have no lib target", package) };
+        }
         const auto cmake_deps = cmake::resolve_deps(manifest.dependencies(), all_deps);
         cmake::CmakeLib lib({
-            .name = lib_target.name,
-            .include_dirs = lib_target.includes,
-            .sources = lib_target.sources,
+            .name = lib_target->name,
+            .include_dirs = lib_target->includes,
+            .sources = lib_target->sources,
             .deps = cmake_deps,
         });
 
