@@ -1,10 +1,11 @@
 #include "cppship/cmake/bin.h"
-#include "cppship/exception.h"
 
 #include <boost/algorithm/string/join.hpp>
 #include <fmt/core.h>
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/transform.hpp>
+
+#include "cppship/exception.h"
 
 using namespace cppship;
 using namespace cppship::cmake;
@@ -21,7 +22,8 @@ CmakeBin::CmakeBin(BinDesc desc)
 void CmakeBin::build(std::ostream& out) const
 {
     out << "\n# BIN\n";
-    out << fmt::format("add_executable({} {})\n", mDesc.name,
+    out << fmt::format("add_executable({} {})\n",
+        mDesc.name,
         boost::join(mDesc.sources | transform([](const auto& path) { return path.generic_string(); }), "\n"));
 
     if (mDesc.include_dir) {
@@ -52,7 +54,8 @@ void CmakeBin::build(std::ostream& out) const
         if (const auto& runtime_dir = mDesc.runtime_dir) {
             out << fmt::format(
                 R"(set_target_properties({} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${{CMAKE_BINARY_DIR}}/{}"))",
-                mDesc.name, *runtime_dir)
+                mDesc.name,
+                *runtime_dir)
                 << '\n';
         }
     }

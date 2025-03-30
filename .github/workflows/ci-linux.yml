@@ -1,20 +1,10 @@
 name: Linux
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-  schedule:
-    - cron: "4 5 * * 0"
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  workflow_call:
 
 jobs:
   build:
-    if: ${{!contains(github.event.pull_request.title, 'skip-ci') && !contains(github.event.head_commit.message, 'skip-ci')}}
     strategy:
       matrix:
         build_type: [ Debug, Release ]
@@ -45,8 +35,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
 
     # Hack to deal with https://github.com/actions/runner-images/issues/8659
     - name: Fix GCC
@@ -86,17 +74,6 @@ jobs:
         cppship run --profile ${{ matrix.build_type }}
         cppship test --profile ${{ matrix.build_type }}
 
-    - name: Lint and format
-      if: matrix.build_type == 'Release' && matrix.compiler.cxx == 'clang++-14' && github.event_name == 'pull_request'
-      run: |
-        mergebase=$(git merge-base --fork-point origin/${{github.event.pull_request.base.ref}})
-        /home/linuxbrew/.linuxbrew/bin/brew install llvm@19
-        export PATH="$(/home/linuxbrew/.linuxbrew/bin/brew --prefix llvm@19)/bin:$PATH"
-        cppship fmt
-        cppship fmt -c ${mergebase}
-        cppship lint -c ${mergebase}
-        cppship clean
-
     - name: Cppship init app
       run: |
         mkdir .bin && cd .bin
@@ -128,7 +105,6 @@ jobs:
         bash verify.sh
 
   build-gcc13:
-    if: ${{!contains(github.event.pull_request.title, 'skip-ci') && !contains(github.event.head_commit.message, 'skip-ci')}}
     strategy:
       matrix:
         build_type: [ Debug, Release ]
