@@ -26,13 +26,9 @@ private:
     fs::path mPrevCwd;
 };
 
-inline void create_if_not_exist(const fs::path& path)
-{
-    if (fs::exists(path)) {
-        return;
-    }
+void create_if_not_exist(const fs::path& path);
 
-    fs::create_directory(path);
-}
+inline constexpr std::string_view kCppShipDirName = ".cppship";
+fs::path get_cppship_dir();
 
 }
