@@ -1,14 +1,15 @@
 #include "cppship/cmake/package_configurer.h"
-#include "cppship/core/dependency.h"
-#include "cppship/util/fs.h"
-#include "cppship/util/io.h"
-#include "cppship/util/repo.h"
 
 #include <string>
 
 #include <boost/algorithm/string/replace.hpp>
 #include <fmt/core.h>
 #include <gtest/gtest.h>
+
+#include "cppship/core/dependency.h"
+#include "cppship/util/fs.h"
+#include "cppship/util/io.h"
+#include "cppship/util/repo.h"
 
 using namespace cppship;
 using namespace std::string_literals;
@@ -33,7 +34,8 @@ TEST(package_configurer, HeaderOnly)
         },
     } };
 
-    cmake::config_packages(deps, deps,
+    cmake::config_packages(deps,
+        deps,
         {
             .deps_dir = deps_dir,
             .post_process
@@ -81,7 +83,8 @@ fmt = "9.1.0"
         .cmake_target = "fmt::fmt",
     });
 
-    cmake::config_packages(deps, all_deps,
+    cmake::config_packages(deps,
+        all_deps,
         {
             .deps_dir = deps_dir,
             .post_process
@@ -142,7 +145,8 @@ fmt = "9.1.0"
         .cmake_target = "fmt::fmt",
     });
 
-    cmake::config_packages(deps, all_deps,
+    cmake::config_packages(deps,
+        all_deps,
         {
             .deps_dir = deps_dir,
             .post_process

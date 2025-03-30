@@ -14,7 +14,7 @@ public:
 
     DECLARE_UNCOPYABLE(DependencyInjector);
 
-    virtual void inject(std::ostream& out, const Manifest& manifest) = 0;
+    virtual void inject(std::ostream& out, const PackageManifest& manifest) = 0;
 };
 
 // when generate cmake project according to cppship.toml, we need config conan and cppship deps, do the config in this
@@ -30,7 +30,7 @@ public:
     {
     }
 
-    void inject(std::ostream& out, const Manifest& manifest) override;
+    void inject(std::ostream& out, const PackageManifest& manifest) override;
 
 private:
     fs::path mDepsDir;

@@ -1,3 +1,5 @@
+#include "cppship/cmd/bench.h"
+
 #include <cstdlib>
 
 #include <boost/process/system.hpp>
@@ -8,9 +10,9 @@
 
 #include "cppship/cmake/msvc.h"
 #include "cppship/cmake/naming.h"
-#include "cppship/cmd/bench.h"
 #include "cppship/cmd/build.h"
 #include "cppship/core/manifest.h"
+#include "cppship/core/workspace.h"
 #include "cppship/util/fs.h"
 #include "cppship/util/log.h"
 
@@ -35,10 +37,12 @@ int cmd::run_bench(const BenchOptions& options)
     BuildContext ctx(options.profile);
     Manifest manifest(ctx.metafile);
 
+    const auto& layout = enforce_default_package(ctx.workspace);
+
     NameTargetMapper mapper;
     BuildOptions build_options { .profile = options.profile };
     if (options.target) {
-        if (!ctx.layout.bench(*options.target)) {
+        if (!layout.bench(*options.target)) {
             throw Error { fmt::format("bench `{}` not found", *options.target) };
         }
 
@@ -56,7 +60,7 @@ int cmd::run_bench(const BenchOptions& options)
         return run_one_bench(ctx, *build_options.target);
     }
 
-    for (const auto& bench : ctx.layout.benches()) {
+    for (const auto& bench : layout.benches()) {
         const int res = run_one_bench(ctx, mapper.bench(bench.name));
         if (res != 0) {
             result = res;

@@ -5,6 +5,8 @@
 
 #include "cppship/util/fs.h"
 
+// This file describle the layout of a cppship project
+
 namespace cppship {
 
 inline constexpr std::string_view kRepoConfigFile = "cppship.toml";
@@ -18,11 +20,28 @@ inline constexpr std::string_view kExamplesPath = "examples";
 
 inline constexpr std::string_view kInnerTestSuffix = "_test.cpp";
 
+// Layout of build dir
+//  debug/ or release/: cmake build directory(the profile directory)
+//    conan_profile
+//    inventory.toml: source file list
+//    dependency.toml: resolved conan+git dependencies
+//  deps: cppship packages, git packages
+//  packages: package cmake config
+//    <package-1>.cmake
+//    <package-2>.cmake
+//  CMakeLists.txt: the generated cmake file
+//  conanfile.txt: conan dependencies
+//  git_dep.txt: git dependencies
 inline constexpr std::string_view kBuildPath = "build";
+inline constexpr std::string_view kBuildPackagesPath = "packages";
+// all non-conan deps will be put here
+inline constexpr std::string_view kBuildDepsPath = "deps";
 
 inline constexpr std::string_view kRepoHead = "HEAD";
 
 fs::path get_project_root();
+
+fs::path get_package_root();
 
 struct ListOptions {
     bool cached_only = true;

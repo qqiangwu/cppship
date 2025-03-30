@@ -1,3 +1,5 @@
+#include "cppship/cmd/run.h"
+
 #include <cstdlib>
 
 #include <boost/process/system.hpp>
@@ -7,7 +9,7 @@
 #include "cppship/cmake/msvc.h"
 #include "cppship/cmake/naming.h"
 #include "cppship/cmd/build.h"
-#include "cppship/cmd/run.h"
+#include "cppship/core/layout.h"
 #include "cppship/core/manifest.h"
 #include "cppship/util/cmd.h"
 #include "cppship/util/fs.h"
@@ -25,20 +27,20 @@ void validate_options(const cmd::RunOptions& options)
     }
 }
 
-void validate_target(const cmd::BuildContext& ctx, const cmd::RunOptions& opt)
+void validate_target(const Layout& layout, const cmd::RunOptions& opt)
 {
     if (const auto& bin = opt.bin) {
-        if (!ctx.layout.binary(*bin)) {
+        if (!layout.binary(*bin)) {
             throw Error { fmt::format("binary `{}` not found", *bin) };
         }
     } else if (const auto& example = opt.example) {
-        if (!ctx.layout.example(*example)) {
+        if (!layout.example(*example)) {
             throw Error { fmt::format("example `{}` not found", *example) };
         }
     }
 }
 
-std::string choose_binary(const cmd::RunOptions& options, const Manifest& manifest)
+std::string choose_binary(const cmd::RunOptions& options, const PackageManifest& manifest)
 {
     if (options.example) {
         return *options.example;
@@ -59,10 +61,11 @@ int cmd::run_run(const RunOptions& options)
     BuildContext ctx(options.profile);
     Manifest manifest(ctx.metafile);
 
-    validate_target(ctx, options);
+    const auto& layout = enforce_default_package(ctx.workspace);
+    validate_target(layout, options);
 
     cmake::NameTargetMapper mapper;
-    const auto bin = choose_binary(options, manifest);
+    const auto bin = choose_binary(options, *manifest.get_if_package());
     const auto target = options.example ? mapper.example(bin) : bin;
     const int result = run_build({ .profile = options.profile, .target = target });
     if (result != 0) {

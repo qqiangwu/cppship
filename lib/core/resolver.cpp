@@ -1,22 +1,23 @@
 #include "cppship/core/resolver.h"
-#include "cppship/core/manifest.h"
-#include "cppship/util/io.h"
-#include "cppship/util/log.h"
-#include "cppship/util/repo.h"
 
 #include <fmt/format.h>
 #include <range/v3/action/push_back.hpp>
 #include <range/v3/action/reverse.hpp>
 
+#include "cppship/core/manifest.h"
+#include "cppship/util/io.h"
+#include "cppship/util/log.h"
+#include "cppship/util/repo.h"
+
 using namespace cppship;
 using namespace fmt::literals;
 
-Resolver::Resolver(const fs::path& deps_dir, gsl::not_null<const Manifest*> manifest, GitFetcher fetcher)
+Resolver::Resolver(const fs::path& deps_dir, const std::vector<DeclaredDependency>& deps,
+    const std::vector<DeclaredDependency>& dev_deps, GitFetcher fetcher)
     : mDepsDir(deps_dir)
-    , mManifest(manifest)
     , mFetcher(std::move(fetcher))
 {
-    for (const auto& dep : manifest->dependencies()) {
+    for (const auto& dep : deps) {
         const auto* conanlib = get_if<ConanDep>(&dep.desc);
         if (conanlib == nullptr) {
             mUnresolved.push(dep);
@@ -27,7 +28,7 @@ Resolver::Resolver(const fs::path& deps_dir, gsl::not_null<const Manifest*> mani
         mResult.conan_dependencies.push_back(dep);
     }
 
-    for (const auto& dep : manifest->dev_dependencies()) {
+    for (const auto& dep : dev_deps) {
         const auto* conanlib = get_if<ConanDep>(&dep.desc);
         if (conanlib == nullptr) {
             mUnresolved.push(dep);
@@ -117,11 +118,11 @@ void Resolver::resolve_package_(std::string_view package, const fs::path& packag
         return;
     }
 
-    Manifest manifest(cppship_manifest);
     status("resolve", "cppship lib {} found", package);
-    if (manifest.cxx_std() > mManifest->cxx_std()) {
-        throw Error { fmt::format(
-            "{} require cpp {} > {} (this project)", package, manifest.cxx_std(), mManifest->cxx_std()) };
+
+    Manifest manifest(cppship_manifest);
+    if (manifest.is_workspace()) {
+        throw Error { fmt::format("package {} is a workspace", package) };
     }
 
     for (const auto& sub_dep : manifest.dependencies()) {

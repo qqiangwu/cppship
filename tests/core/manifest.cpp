@@ -1,11 +1,13 @@
+#include "cppship/core/manifest.h"
+
 #include <atomic>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 
 #include <gtest/gtest.h>
 #include <range/v3/algorithm/sort.hpp>
 
-#include "cppship/core/manifest.h"
 #include "cppship/exception.h"
 #include "cppship/util/io.h"
 
@@ -14,14 +16,20 @@ using namespace cppship::core;
 
 namespace {
 
-Manifest mock_manifest(const std::string_view content)
+PackageManifest mock_manifest(const std::string_view content)
 {
     static std::atomic<int> S_COUNTER { 0 };
 
     const auto file = fs::temp_directory_path() / std::to_string(++S_COUNTER);
     write(file, content);
 
-    return Manifest { file };
+    Manifest m { file };
+    const auto* p = m.get_if_package();
+    if (p == nullptr) {
+        throw std::runtime_error { "invalid manifest" };
+    }
+
+    return *p;
 }
 
 }
@@ -342,7 +350,7 @@ cxxflags = ["/MP"]
 definitions = ["A"]
     )");
 
-    auto prof = meta.default_profile();
+    const auto& prof = meta.default_profile();
     ASSERT_TRUE(prof.config.cxxflags.empty());
     ASSERT_TRUE(prof.config.definitions.empty());
 
@@ -388,7 +396,7 @@ cxxflags = ["/MP"]
 definitions = ["A"]
     )");
 
-    auto prof = meta.default_profile();
+    const auto& prof = meta.default_profile();
     ASSERT_TRUE(prof.config.cxxflags.empty());
     ASSERT_TRUE(prof.config.definitions.empty());
 

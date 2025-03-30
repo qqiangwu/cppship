@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.17)
-project(cppship VERSION 0.7.3)
+project(cppship VERSION 0.8.0)
 
 # cpp std
 set(CMAKE_CXX_STANDARD 20)

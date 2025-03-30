@@ -4,7 +4,7 @@
 
 namespace cppship::cmake {
 
-inline constexpr std::string_view kCppshipGroupLib = "cppship_group_lib";
+inline constexpr std::string_view kCppshipGroupLibs = "cppship_group_libs";
 inline constexpr std::string_view kCppshipGroupBinaries = "cppship_group_binaries";
 inline constexpr std::string_view kCppshipGroupTests = "cppship_group_tests";
 inline constexpr std::string_view kCppshipGroupBenches = "cppship_group_benches";
