@@ -14,6 +14,7 @@
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/concat.hpp>
 #include <range/v3/view/filter.hpp>
+#include <range/v3/view/map.hpp>
 #include <range/v3/view/transform.hpp>
 #include <spdlog/spdlog.h>
 #include <toml.hpp>
@@ -29,6 +30,7 @@
 #include "cppship/core/layout.h"
 #include "cppship/core/resolver.h"
 #include "cppship/exception.h"
+#include "cppship/util/assert.h"
 #include "cppship/util/cmd.h"
 #include "cppship/util/fs.h"
 #include "cppship/util/git.h"
@@ -40,6 +42,23 @@ using namespace boost::process;
 using namespace fmt::literals;
 
 namespace rng = ranges::views;
+
+bool cmd::BuildContext::is_expired(const fs::path& path) const
+{
+    if (!fs::exists(path)) {
+        return true;
+    }
+    if (fs::last_write_time(path) < fs::last_write_time(metafile)) {
+        return true;
+    }
+
+    const auto manifest_last_update_times = rng::keys(workspace) | rng::transform([](const fs::path& package_dir) {
+        return fs::last_write_time(package_dir / kRepoConfigFile);
+    });
+    enforce(!manifest_last_update_times.empty(), "at least one manifest should exists");
+
+    return fs::last_write_time(path) < *ranges::max_element(manifest_last_update_times);
+}
 
 int cmd::run_build(const BuildOptions& options)
 {

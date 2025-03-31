@@ -56,10 +56,7 @@ struct BuildContext {
         }
     }
 
-    [[nodiscard]] bool is_expired(const fs::path& path) const
-    {
-        return !fs::exists(path) || fs::last_write_time(path) < fs::last_write_time(metafile);
-    }
+    [[nodiscard]] bool is_expired(const fs::path& path) const;
 };
 
 int run_build(const BuildOptions& options);
