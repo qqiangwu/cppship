@@ -9,7 +9,7 @@ argparse/2.9
 spdlog/1.11.0
 
 [test_requires]
-gtest/cci.20210126
+gtest/1.16.0
 
 [generators]
 CMakeDeps
