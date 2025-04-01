@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <set>
 #include <string>
 #include <thread>
@@ -12,6 +13,7 @@
 #include "cppship/core/manifest.h"
 #include "cppship/core/profile.h"
 #include "cppship/core/workspace.h"
+#include "cppship/util/cmd_runner.h"
 #include "cppship/util/fs.h"
 #include "cppship/util/repo.h"
 
@@ -23,6 +25,7 @@ struct BuildOptions {
     int max_concurrency = gsl::narrow_cast<int>(std::thread::hardware_concurrency());
     Profile profile = Profile::debug;
     bool dry_run = false;
+    std::optional<std::string> package;
     std::optional<std::string> target;
     std::set<BuildGroup> groups;
 };
@@ -57,6 +60,8 @@ struct BuildContext {
     }
 
     [[nodiscard]] bool is_expired(const fs::path& path) const;
+
+    [[nodiscard]] std::optional<std::string> get_active_package() const;
 };
 
 int run_build(const BuildOptions& options);
@@ -72,12 +77,12 @@ void cppship_install(
 
 namespace cmd_internals {
 
-    std::string cmake_gen_config(const BuildContext& ctx, bool for_standalone_cmake = false);
+std::string cmake_gen_config(const BuildContext& ctx, bool for_standalone_cmake = false);
 
 }
 
 void cmake_setup(const BuildContext& ctx);
 
-int cmake_build(const BuildContext& ctx, const BuildOptions& options);
+int cmake_build(const BuildContext& ctx, const BuildOptions& options, const util::CmdRunner& runner = {});
 
 }

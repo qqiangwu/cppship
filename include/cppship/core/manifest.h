@@ -67,7 +67,7 @@ public:
 
     const PackageManifest* get_if_package() const { return std::get_if<PackageManifest>(&packages_); }
 
-    const PackageManifest* get(const fs::path& p) const
+    const PackageManifest* get_by_path(const fs::path& p) const
     {
         const auto* map = std::get_if<1>(&packages_);
         if (map == nullptr) {
@@ -78,14 +78,13 @@ public:
         return it == map->end() ? nullptr : &it->second;
     }
 
+    const PackageManifest* get(std::string_view package) const;
+
     const auto& list_packages() const { return std::get<1>(packages_); }
 
     const std::vector<DeclaredDependency>& dependencies() const { return mDependencies; }
 
     const std::vector<DeclaredDependency>& dev_dependencies() const { return mDevDependencies; }
-
-private:
-    const PackageManifest& as_package_() const { return std::get<PackageManifest>(packages_); }
 
 private:
     std::variant<std::monostate, std::map<fs::path, PackageManifest>, PackageManifest> packages_;

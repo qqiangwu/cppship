@@ -27,6 +27,18 @@ private:
     std::string mCmd;
 };
 
+class InvalidCmdOption : public Error {
+public:
+    explicit InvalidCmdOption(std::string_view option, const std::string& msg)
+        : Error(msg)
+        , mOption(option)
+    {
+    }
+
+private:
+    std::string mOption;
+};
+
 class RunCmdFailed : public Error {
 public:
     RunCmdFailed(const int status, std::string_view cmd)

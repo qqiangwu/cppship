@@ -40,6 +40,8 @@ struct SubCommand {
     int run() { return cmd_runner(parser); }
 };
 
+namespace {
+
 Profile get_profile(const ArgumentParser& cmd)
 {
     if (cmd.is_used("profile")) {
@@ -131,6 +133,7 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
             .max_concurrency = get_concurrency(cmd),
             .profile = get_profile(cmd),
             .dry_run = cmd.get<bool>("-d"),
+            .package = cmd.present("--package"),
             .groups = groups,
         });
     });
@@ -146,6 +149,7 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
         .help("dry-run, generate compile_commands.json")
         .default_value(false)
         .implicit_value(true);
+    build.parser.add_argument("--package").help("package to build");
     build.parser.add_argument("--profile").help("build with specific profile").default_value(kProfileDebug);
     build.parser.add_argument("--examples").help("build all examples").default_value(false).implicit_value(true);
     build.parser.add_argument("--tests").help("build all tests").default_value(false).implicit_value(true);
@@ -272,6 +276,8 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
     cmake.parser.add_description("generate cmake CMakeFiles.txt");
 
     return commands;
+}
+
 }
 
 int main(int argc, const char* argv[])

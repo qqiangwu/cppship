@@ -9,7 +9,9 @@
 #include <fmt/os.h>
 #include <range/v3/action/push_back.hpp>
 #include <range/v3/algorithm/any_of.hpp>
+#include <range/v3/algorithm/find.hpp>
 #include <range/v3/view/concat.hpp>
+#include <range/v3/view/filter.hpp>
 #include <toml.hpp>
 #include <toml/get.hpp>
 #include <toml/value.hpp>
@@ -119,7 +121,7 @@ std::vector<DeclaredDependency> parse_dependencies(const toml::value& manifest, 
         } else if (dep_config.is_table()) {
             if (dep_config.contains("git")) {
                 GitDep desc;
-                desc.git = find<std::string>(dep_config, "git");
+                desc.git = toml::find<std::string>(dep_config, "git");
                 desc.commit = find_or<std::string>(dep_config, "commit", "");
                 if (desc.git.empty()) {
                     throw Error { fmt::format("invalid git url {}", desc.git) };
@@ -276,7 +278,7 @@ Manifest::Manifest(const fs::path& file)
         std::set<std::string> package_names;
         for (const auto& member : get_list(workspace, "members")) {
             auto package_path = fs::path(member);
-            const auto package_manifest_path = package_path / kRepoConfigFile;
+            const auto package_manifest_path = file.parent_path() / package_path / kRepoConfigFile;
             if (!fs::exists(package_manifest_path)) {
                 throw Error { fmt::format("invalid workspace member {}", member) };
             }
@@ -295,6 +297,23 @@ Manifest::Manifest(const fs::path& file)
         throw Error { e.what() };
     } catch (const toml::exception& e) {
         throw Error { fmt::format("invalid manifest format at {}", e.what()) };
+    }
+}
+
+const PackageManifest* Manifest::get(std::string_view package) const
+{
+    switch (packages_.index()) {
+    case 1: {
+        const auto& ps = views::values(std::get<1>(packages_));
+        const auto it = find(ps, package, &PackageManifest::name);
+        return it != ps.end() ? &*it : nullptr;
+    }
+    case 2: {
+        const auto& p = std::get<2>(packages_);
+        return p.name() == package ? &p : nullptr;
+    }
+    default:
+        return nullptr;
     }
 }
 

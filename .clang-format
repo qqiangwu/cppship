@@ -3,6 +3,7 @@ Language: Cpp
 BasedOnStyle: WebKit
 BinPackArguments: false
 ColumnLimit: 120
+NamespaceIndentation: None
 InsertNewlineAtEOF: true
 InsertTrailingCommas: Wrapped
 IncludeBlocks: Regroup
