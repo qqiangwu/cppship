@@ -1,7 +1,7 @@
 #pragma once
 
 #include <functional>
-#include <type_traits>
+#include <string_view>
 
 namespace cppship::util {
 

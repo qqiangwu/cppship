@@ -186,7 +186,7 @@ void cmd::conan_setup(const BuildContext& ctx)
 
     oss << '\n'
         << "[test_requires]\n"
-        << "gtest/cci.20210126\n"
+        << "gtest/1.16.0\n"
         << "benchmark/1.7.1\n";
     for (const auto& dep : result.conan_dev_dependencies) {
         const auto& desc = std::get<ConanDep>(dep.desc);
