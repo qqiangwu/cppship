@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <optional>
 #include <sstream>
 #include <string>
 
@@ -32,6 +33,7 @@
 #include "cppship/exception.h"
 #include "cppship/util/assert.h"
 #include "cppship/util/cmd.h"
+#include "cppship/util/cmd_runner.h"
 #include "cppship/util/fs.h"
 #include "cppship/util/git.h"
 #include "cppship/util/io.h"
@@ -58,6 +60,17 @@ bool cmd::BuildContext::is_expired(const fs::path& path) const
     enforce(!manifest_last_update_times.empty(), "at least one manifest should exists");
 
     return fs::last_write_time(path) < *ranges::max_element(manifest_last_update_times);
+}
+
+std::optional<std::string> cmd::BuildContext::get_active_package() const
+{
+    if (package_root == root) {
+        return std::nullopt;
+    }
+
+    const auto path = fs::relative(package_root, root);
+    const auto* p = manifest.get_by_path(path);
+    return p != nullptr ? std::make_optional<std::string>(p->name()) : std::nullopt;
 }
 
 int cmd::run_build(const BuildOptions& options)
@@ -282,7 +295,7 @@ std::string cmd::cmd_internals::cmake_gen_config(const BuildContext& ctx, bool f
     });
 
     for (const auto& [path, layout] : ctx.workspace) {
-        const auto* manifest = ctx.manifest.get(path);
+        const auto* manifest = ctx.manifest.get_by_path(path);
         enforce(manifest != nullptr, "manifest and workspace inconsistent");
 
         gen.add(layout, *manifest, resolved_deps);
@@ -381,10 +394,32 @@ std::string_view to_cmake_group(cmd::BuildGroup group)
     std::abort();
 }
 
+std::string to_cmake_group(cmd::BuildGroup group, const cmd::BuildContext& ctx, const cmd::BuildOptions& options)
+{
+    auto cmake_group = to_cmake_group(group);
+    const auto package = options.package.has_value() ? options.package : ctx.get_active_package();
+    if (!package.has_value()) {
+        return std::string(cmake_group);
+    }
+
+    return fmt::format("{}_{}", *package, cmake_group);
 }
 
-int cmd::cmake_build(const BuildContext& ctx, const BuildOptions& options)
+void validate_options(const cmd::BuildContext& ctx, const cmd::BuildOptions& options)
 {
+    if (options.package.has_value()) {
+        if (ctx.manifest.get(*options.package) == nullptr) {
+            throw InvalidCmdOption("package", "invalid package specified by --package");
+        }
+    }
+}
+
+}
+
+int cmd::cmake_build(const BuildContext& ctx, const BuildOptions& options, const util::CmdRunner& runner)
+{
+    validate_options(ctx, options);
+
     auto cmd = fmt::format("cmake --build {} -j {} --config {}",
         ctx.profile_dir.string(),
         options.max_concurrency,
@@ -392,13 +427,13 @@ int cmd::cmake_build(const BuildContext& ctx, const BuildOptions& options)
     if (options.target) {
         cmd += fmt::format(" --target {}", *options.target);
     } else if (options.groups.empty()) {
-        cmd += fmt::format(" --target {}", cmake::kCppshipGroupBinaries);
+        cmd += fmt::format(" --target {}", to_cmake_group(BuildGroup::binaries, ctx, options));
     } else {
         for (const auto group : options.groups) {
-            cmd += fmt::format(" --target {}", to_cmake_group(group));
+            cmd += fmt::format(" --target {}", to_cmake_group(group, ctx, options));
         }
     }
 
     status("build", "{}", cmd);
-    return run_cmd(cmd);
+    return runner.run(cmd);
 }

@@ -22,4 +22,9 @@ template <class Input, class Pred> inline auto split(Input&& input, Pred pred)
     return split_to<std::vector>(std::forward<Input>(input), pred);
 }
 
+inline bool contains(std::string_view corpus, std::string_view patten)
+{
+    return corpus.find(patten) != std::string_view::npos;
+}
+
 }
