@@ -315,8 +315,16 @@ std::set<std::string> collect_lib_targets(const Workspace& workspace)
 
 std::set<std::string> collect_saved_libs(const toml::value& value)
 {
-    return toml::find_or(value, "libs", {}).as_array()
-        | rng::transform([](const auto& val) { return val.as_string().str; }) | ranges::to<std::set>();
+    return std::invoke(
+        [](const toml::value& value) {
+            if (!value.is_array()) {
+                return std::set<std::string>();
+            }
+
+            return value.as_array() | rng::transform([](const auto& val) { return val.as_string().str; })
+                | ranges::to<std::set>();
+        },
+        toml::find_or(value, "libs", {}));
 }
 
 }
