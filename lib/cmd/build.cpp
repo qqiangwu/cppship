@@ -432,8 +432,8 @@ int cmd::cmake_build(const BuildContext& ctx, const BuildOptions& options, const
         ctx.profile_dir.string(),
         options.max_concurrency,
         to_string(options.profile));
-    if (options.target) {
-        cmd += fmt::format(" --target {}", *options.target);
+    if (options.cmake_target) {
+        cmd += fmt::format(" --target {}", *options.cmake_target);
     } else if (options.groups.empty()) {
         cmd += fmt::format(" --target {}", to_cmake_group(BuildGroup::binaries, ctx, options));
     } else {

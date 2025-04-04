@@ -187,7 +187,7 @@ name = "p3")");
 
     ASSERT_THROW(cmd::cmake_build(ctx, { .package = "abc" }, runner), InvalidCmdOption);
 
-    cmd::cmake_build(ctx, { .target = "p2" }, runner);
+    cmd::cmake_build(ctx, { .cmake_target = "p2" }, runner);
     ASSERT_TRUE(cmd.ends_with("--target p2"));
 
     cmd::cmake_build(ctx, { .package = "p2" }, runner);

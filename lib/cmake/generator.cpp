@@ -324,6 +324,7 @@ find_package(GTest REQUIRED)
         }
 
         mOut << fmt::format("add_test({} {})\n", target, target);
+        mOut << fmt::format("set_tests_properties({} PROPERTIES LABELS {})\n", target, mName);
 
         mTestTargets.emplace(target);
     }

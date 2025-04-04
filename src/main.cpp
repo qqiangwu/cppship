@@ -149,7 +149,7 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
         .help("dry-run, generate compile_commands.json")
         .default_value(false)
         .implicit_value(true);
-    build.parser.add_argument("--package").help("package to build");
+    build.parser.add_argument("-p", "--package").help("package to build");
     build.parser.add_argument("--profile").help("build with specific profile").default_value(kProfileDebug);
     build.parser.add_argument("--examples").help("build all examples").default_value(false).implicit_value(true);
     build.parser.add_argument("--tests").help("build all tests").default_value(false).implicit_value(true);
@@ -200,6 +200,7 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
         return cmd::run_test({
             .profile = get_profile(cmd),
             .target = cmd.present("testname"),
+            .package = cmd.present("package"),
             .name_regex = cmd.present("-R"),
             .rerun_failed = cmd.get<bool>("--rerun-failed"),
         });
@@ -208,6 +209,7 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
     test.parser.add_description("run tests");
     test.parser.add_argument("-r").help("build in release mode").default_value(false).implicit_value(true);
     test.parser.add_argument("-R").help("run tests with name matches the regex").metavar("testregex");
+    test.parser.add_argument("-p", "--package").help("package to test");
     test.parser.add_argument("--profile")
         .help("build with specific profile")
         .metavar("profile")
@@ -223,10 +225,12 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
         return cmd::run_bench({
             .profile = parse_profile(cmd.get("--profile")),
             .target = cmd.present("benchname"),
+            .package = cmd.present("package"),
         });
     });
 
     bench.parser.add_description("run benches");
+    bench.parser.add_argument("-p", "--package").help("package to bench");
     bench.parser.add_argument("--profile")
         .help("build with specific profile")
         .metavar("profile")

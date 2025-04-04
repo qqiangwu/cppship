@@ -26,7 +26,7 @@ struct BuildOptions {
     Profile profile = Profile::debug;
     bool dry_run = false;
     std::optional<std::string> package;
-    std::optional<std::string> target;
+    std::optional<std::string> cmake_target;
     std::set<BuildGroup> groups;
 };
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <range/v3/view/map.hpp>
+
 #include "cppship/core/layout.h"
 #include "cppship/core/manifest.h"
 
@@ -24,6 +26,8 @@ public:
     auto begin() const { return packages_.begin(); }
 
     auto end() const { return packages_.end(); }
+
+    auto layouts() const { return ranges::views::values(packages_); }
 
 private:
     fs::path root_;
