@@ -10,6 +10,7 @@ namespace cppship::cmd {
 struct RunOptions {
     Profile profile = Profile::debug;
     std::string args;
+    std::optional<std::string> package;
     std::optional<std::string> bin;
     std::optional<std::string> example;
 };
