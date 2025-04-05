@@ -165,6 +165,7 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
     auto& install = commands.emplace_back("install", common, [](const ArgumentParser& cmd) {
         return cmd::run_install({
             .profile = parse_profile(cmd.get("--profile")),
+            .binary = cmd.present("bin"),
         });
     });
 
@@ -173,6 +174,7 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
         .help("build with specific profile")
         .metavar("profile")
         .default_value(std::string { kProfileRelease });
+    install.parser.add_argument("--bin").metavar("name").help("install only the specified binary");
 
     // run
     auto& run = commands.emplace_back("run", common, [](const ArgumentParser& cmd) {
