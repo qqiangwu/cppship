@@ -9,7 +9,7 @@ namespace cppship::cmd {
 
 struct TestOptions {
     Profile profile = Profile::debug;
-    std::optional<std::string> target;
+    std::optional<std::string> name;
     std::optional<std::string> package;
     std::optional<std::string> name_regex;
     bool rerun_failed = false;

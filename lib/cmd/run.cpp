@@ -1,10 +1,15 @@
 #include "cppship/cmd/run.h"
 
 #include <cstdlib>
+#include <functional>
+#include <vector>
 
 #include <boost/process/system.hpp>
 #include <gsl/narrow>
 #include <range/v3/algorithm/none_of.hpp>
+#include <range/v3/range/conversion.hpp>
+#include <range/v3/view/filter.hpp>
+#include <range/v3/view/transform.hpp>
 #include <spdlog/spdlog.h>
 
 #include "cppship/cmake/msvc.h"
@@ -25,7 +30,7 @@ namespace {
 void validate_options(const cmd::BuildContext& ctx, const cmd::RunOptions& options)
 {
     if (options.bin && options.example) {
-        throw Error { "should not specify --bin and --example in the same time" };
+        throw Error { "should not specify --bin and --example at the same time" };
     }
     if (options.package) {
         if (ctx.manifest.get(*options.package) == nullptr) {
@@ -34,59 +39,82 @@ void validate_options(const cmd::BuildContext& ctx, const cmd::RunOptions& optio
     }
 }
 
-void validate_target(const Workspace& workspace, const cmd::RunOptions& opt)
+std::string choose_target(const cmd::BuildContext& ctx, const cmd::RunOptions& options)
 {
-    const auto layouts = workspace.layouts();
-    if (const auto& bin = opt.bin) {
-        if (ranges::none_of(layouts, [&](const Layout& layout) { return layout.binary(*bin).has_value(); })) {
-            throw Error { fmt::format("binary `{}` not found", *bin) };
-        }
-    } else if (const auto& example = opt.example) {
-        if (ranges::none_of(layouts, [&](const Layout& layout) { return layout.example(*example).has_value(); })) {
-            throw Error { fmt::format("example `{}` not found", *example) };
-        }
-    }
-}
+    if (!options.bin && !options.example) {
+        const std::string package = std::invoke([&] {
+            if (options.package) {
+                return *options.package;
+            }
+            if (const auto& p = ctx.get_active_package()) {
+                return *p;
+            }
 
-std::optional<std::string> choose_binary(const cmd::RunOptions& options, const PackageManifest* manifest)
-{
-    if (options.example) {
-        return options.example;
-    }
-    if (options.bin) {
-        return options.bin;
-    }
-    if (options.package) {
-        return options.package;
-    }
-    if (manifest != nullptr) {
-        return std::make_optional<std::string>(manifest->name());
+            throw Error { "no target selected" };
+        });
+
+        const auto* layout = ctx.workspace.layout(package);
+        auto target = layout->binary(package);
+        if (!target) {
+            throw Error { fmt::format("package {} has no default binary", package) };
+        }
+
+        return cmake::NameTargetMapper(package).binary(target->name);
     }
 
-    return std::nullopt;
+    std::vector<const Layout*> layouts = std::invoke([&]() -> std::vector<const Layout*> {
+        if (options.package) {
+            return { ctx.workspace.layout(*options.package) };
+        }
+
+        return ctx.workspace.layouts() | ranges::views::transform([](const Layout& l) { return &l; })
+            | ranges::to<std::vector>();
+    });
+
+    const auto candidates = layouts | ranges::views::filter([&](const Layout* layout) {
+        if (options.bin) {
+            return layout->binary(*options.bin).has_value();
+        }
+        if (options.example) {
+            return layout->example(*options.example).has_value();
+        }
+        return false;
+    }) | ranges::to<std::vector>();
+
+    if (candidates.empty()) {
+        throw Error { options.bin ? fmt::format("binary `{}` not found", *options.bin)
+                                  : fmt::format("example `{}` not found", *options.example) };
+    }
+    if (candidates.size() > 1) {
+        throw Error { "too many targets selected" };
+    }
+
+    const auto* layout = candidates.front();
+    cmake::NameTargetMapper mapper(layout->package());
+    return options.bin ? mapper.binary(*options.bin) : mapper.example(*options.example);
 }
+
+inline std::string_view binary_target_to_name(std::string_view target)
+{
+    target.remove_suffix(4);
+    return target;
+}
+
 }
 
 int cmd::run_run(const RunOptions& options)
 {
     BuildContext ctx(options.profile);
     validate_options(ctx, options);
-    validate_target(ctx.workspace, options);
 
-    cmake::NameTargetMapper mapper;
-    const auto bin = choose_binary(options, ctx.manifest.get_if_package());
-    if (!bin) {
-        warn("no target selected");
-        return EXIT_SUCCESS;
-    }
-
-    const auto target = options.example ? mapper.example(*bin) : *bin;
+    const auto target = choose_target(ctx, options);
     const int result = run_build({ .profile = options.profile, .cmake_target = target });
     if (result != 0) {
         return EXIT_FAILURE;
     }
 
-    const fs::path fixed_bin = msvc::fix_bin_path(ctx, *bin);
+    const fs::path fixed_bin
+        = options.example ? msvc::fix_bin_path(ctx, target) : msvc::fix_bin_path(ctx, binary_target_to_name(target));
     const auto bin_file = options.example ? ctx.profile_dir / kExamplesPath / fixed_bin : ctx.profile_dir / fixed_bin;
     if (!has_cmd(bin_file.string())) {
         error("no binary to run: {}", bin_file.string());

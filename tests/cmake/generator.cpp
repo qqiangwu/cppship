@@ -39,5 +39,5 @@ version = "0.1.0"
     )");
     CmakeGenerator gen(&layout, meta.get_if_package(), {});
     const auto content = std::move(gen).build();
-    EXPECT_TRUE(boost::contains(content, "target_compile_definitions(tmp PRIVATE ABC_ABC_ABC_VERSION="));
+    EXPECT_TRUE(boost::contains(content, "target_compile_definitions(tmp_bin PRIVATE ABC_ABC_ABC_VERSION="));
 }

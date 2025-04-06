@@ -8,6 +8,7 @@
 #include <range/v3/view/transform.hpp>
 #include <spdlog/spdlog.h>
 
+#include "cppship/cmake/naming.h"
 #include "cppship/cmd/build.h"
 #include "cppship/core/layout.h"
 #include "cppship/core/manifest.h"
@@ -54,7 +55,11 @@ int cmd::run_install([[maybe_unused]] const InstallOptions& options)
         throw InvalidCmdOption { "--bin", fmt::format("specified binary {} is not found", *options.binary) };
     }
 
-    const int result = run_build({ .profile = options.profile, .cmake_target = options.binary });
+    cmake::NameTargetMapper mapper(layout.package());
+    const int result = run_build({
+        .profile = options.profile,
+        .cmake_target = options.binary.has_value() ? std::make_optional(mapper.binary(*options.binary)) : std::nullopt,
+    });
     if (result != 0) {
         return EXIT_FAILURE;
     }

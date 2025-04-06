@@ -29,6 +29,8 @@ public:
 
     auto layouts() const { return ranges::views::values(packages_); }
 
+    const Layout* layout(std::string_view package) const;
+
 private:
     fs::path root_;
 
@@ -36,7 +38,6 @@ private:
     std::map<fs::path, Layout> packages_;
 };
 
-// Workspace is not full supported now, use this to enforce default layout.
 const Layout& enforce_default_package(const Workspace& workspace);
 
 }

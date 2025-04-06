@@ -4,7 +4,8 @@
 
 #include <boost/process/system.hpp>
 #include <gsl/narrow>
-#include <range/v3/algorithm/all_of.hpp>
+#include <range/v3/range/conversion.hpp>
+#include <range/v3/view/filter.hpp>
 #include <spdlog/spdlog.h>
 
 #include "cppship/cmake/naming.h"
@@ -19,7 +20,7 @@ namespace {
 
 void valid_options(const cmd::TestOptions& options)
 {
-    if (options.target && options.name_regex) {
+    if (options.name && options.name_regex) {
         throw Error { "testname and -R should not be specified both" };
     }
 }
@@ -30,17 +31,23 @@ int cmd::run_test(const TestOptions& options)
 {
     valid_options(options);
 
-    cmake::NameTargetMapper mapper;
-
     BuildContext ctx(options.profile);
     BuildOptions build_opts { .profile = options.profile };
-    if (options.target && !options.rerun_failed) {
-        if (ranges::all_of(
-                ctx.workspace.layouts(), [&](const auto& layout) { return !layout.test(*options.target); })) {
-            throw Error { fmt::format("test `{}` not found", *options.target) };
+    if (options.name && !options.rerun_failed) {
+        const auto layouts = ctx.workspace.layouts()
+            | ranges::views::filter([&](const Layout& layout) { return layout.test(*options.name).has_value(); })
+            | ranges::to<std::vector>();
+        if (layouts.empty()) {
+            throw Error { fmt::format("test `{}` not found", *options.name) };
+        }
+        if (layouts.size() > 1) {
+            throw Error { fmt::format("too many tests with name {}, eg. {}, {}",
+                *options.name,
+                layouts.front().package(),
+                layouts.back().package()) };
         }
 
-        build_opts.cmake_target = mapper.test(*options.target);
+        build_opts.cmake_target = cmake::NameTargetMapper(layouts.front().package()).test(*options.name);
     } else {
         build_opts.package = options.package;
         build_opts.groups.insert(BuildGroup::tests);

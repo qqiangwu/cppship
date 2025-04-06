@@ -197,9 +197,12 @@ void CmakeGenerator::add_app_sources_()
             boost::replace_all_copy(boost::to_upper_copy(std::string { mName }), "-", "_")),
     };
 
+    NameTargetMapper mapper(mName);
     for (const auto& bin : mLayout->binaries()) {
+        const auto target = mapper.binary(bin.name);
         cmake::CmakeBin gen({
-            .name = bin.name,
+            .name = target,
+            .name_alias = bin.name,
             .sources = bin.sources,
             .lib = mLib,
             .deps = mDeps,
@@ -208,7 +211,7 @@ void CmakeGenerator::add_app_sources_()
         });
 
         gen.build(mOut);
-        mBinaryTargets.emplace(bin.name);
+        mBinaryTargets.emplace(target);
     }
 }
 
@@ -250,7 +253,7 @@ void CmakeGenerator::add_benches_()
 find_package(benchmark REQUIRED)
 )";
 
-    NameTargetMapper mapper;
+    NameTargetMapper mapper(mName);
     auto deps = mDevDeps;
     deps.push_back({
         .cmake_package = "benchmark",
@@ -264,6 +267,7 @@ find_package(benchmark REQUIRED)
             .sources = bin.sources,
             .lib = mLib,
             .deps = deps,
+            .runtime_dir = "benches",
         });
 
         gen.build(mOut);
@@ -278,13 +282,12 @@ void CmakeGenerator::add_examples_()
         return;
     }
 
-    NameTargetMapper mapper;
+    NameTargetMapper mapper(mName);
     for (const auto& bin : examples) {
         const auto target = mapper.example(bin.name);
 
         cmake::CmakeBin gen({
             .name = target,
-            .name_alias = bin.name,
             .sources = bin.sources,
             .lib = mLib,
             .deps = mDevDeps,
@@ -308,13 +311,17 @@ void CmakeGenerator::add_test_sources_()
 find_package(GTest REQUIRED)
 )";
 
-    NameTargetMapper mapper;
+    NameTargetMapper mapper(mName);
     for (const auto& test : tests) {
         const auto target = mapper.test(test.name);
 
         mOut << '\n'
              << fmt::format("add_executable({} {})\n", target, test.sources.begin()->generic_string())
-             << fmt::format("target_link_libraries({} PRIVATE GTest::gtest_main)\n", target);
+             << fmt::format("target_link_libraries({} PRIVATE GTest::gtest_main)\n", target)
+             << fmt::format(
+                    R"(set_target_properties({} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${{CMAKE_BINARY_DIR}}/tests"))",
+                    target)
+             << '\n';
 
         if (mLib) {
             mOut << fmt::format("target_link_libraries({} PRIVATE {})\n", target, *mLib);
@@ -323,7 +330,7 @@ find_package(GTest REQUIRED)
             mOut << fmt::format("target_link_libraries({} PRIVATE {})\n", target, boost::join(dep.cmake_targets, " "));
         }
 
-        mOut << fmt::format("add_test({} {})\n", target, target);
+        mOut << fmt::format("add_test(NAME {} COMMAND {})\n", target, target);
         mOut << fmt::format("set_tests_properties({} PROPERTIES LABELS {})\n", target, mName);
 
         mTestTargets.emplace(target);
