@@ -4,9 +4,8 @@
 
 #include <boost/process/system.hpp>
 #include <gsl/narrow>
-#include <range/v3/algorithm/all_of.hpp>
 #include <range/v3/range/conversion.hpp>
-#include <range/v3/view.hpp>
+#include <range/v3/view/filter.hpp>
 #include <spdlog/spdlog.h>
 
 #include "cppship/cmake/msvc.h"
@@ -24,7 +23,7 @@ namespace {
 
 int run_one_bench(const cmd::BuildContext& ctx, const std::string_view bench)
 {
-    const auto bin = ctx.profile_dir / msvc::fix_bin_path(ctx, bench);
+    const auto bin = ctx.profile_dir / kBenchesPath / msvc::fix_bin_path(ctx, bench);
     const auto cmd = bin.string();
     status("bench", "{}", cmd);
     return boost::process::system(cmd);
@@ -34,17 +33,23 @@ int run_one_bench(const cmd::BuildContext& ctx, const std::string_view bench)
 
 int cmd::run_bench(const BenchOptions& options)
 {
-    NameTargetMapper mapper;
-
     BuildContext ctx(options.profile);
     BuildOptions build_options { .profile = options.profile };
-    if (options.target) {
-        if (ranges::all_of(
-                ctx.workspace.layouts(), [&](const auto& layout) { return !layout.bench(*options.target); })) {
-            throw Error { fmt::format("bench `{}` not found", *options.target) };
+    if (options.name) {
+        const auto layouts = ctx.workspace.layouts()
+            | filter([&](const Layout& layout) { return layout.bench(*options.name).has_value(); })
+            | ranges::to<std::vector>();
+        if (layouts.empty()) {
+            throw Error { fmt::format("bench `{}` not found", *options.name) };
+        }
+        if (layouts.size() > 1) {
+            throw Error { fmt::format("too many benches with name {}, eg. {}, {}",
+                *options.name,
+                layouts.front().package(),
+                layouts.back().package()) };
         }
 
-        build_options.cmake_target = mapper.bench(*options.target);
+        build_options.cmake_target = NameTargetMapper(layouts.front().package()).bench(*options.name);
     } else {
         build_options.package = options.package;
         build_options.groups.insert(BuildGroup::benches);
@@ -61,6 +66,8 @@ int cmd::run_bench(const BenchOptions& options)
 
     for (const auto& layout : ctx.workspace.layouts()) {
         for (const auto& bench : layout.benches()) {
+            NameTargetMapper mapper(layout.package());
+
             const int res = run_one_bench(ctx, mapper.bench(bench.name));
             if (res != 0) {
                 result = res;

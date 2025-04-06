@@ -201,7 +201,7 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
     auto& test = commands.emplace_back("test", common, [](const ArgumentParser& cmd) {
         return cmd::run_test({
             .profile = get_profile(cmd),
-            .target = cmd.present("testname"),
+            .name = cmd.present("testname"),
             .package = cmd.present("package"),
             .name_regex = cmd.present("-R"),
             .rerun_failed = cmd.get<bool>("--rerun-failed"),
@@ -226,7 +226,7 @@ std::list<SubCommand> build_commands(const ArgumentParser& common)
     auto& bench = commands.emplace_back("bench", common, [](const ArgumentParser& cmd) {
         return cmd::run_bench({
             .profile = parse_profile(cmd.get("--profile")),
-            .target = cmd.present("benchname"),
+            .name = cmd.present("benchname"),
             .package = cmd.present("package"),
         });
     });

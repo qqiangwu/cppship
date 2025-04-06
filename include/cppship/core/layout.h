@@ -1,10 +1,11 @@
 #pragma once
 
-#include "cppship/util/fs.h"
 #include <map>
 #include <optional>
 #include <set>
 #include <vector>
+
+#include "cppship/util/fs.h"
 
 namespace cppship {
 
@@ -17,6 +18,8 @@ struct Target {
 class Layout {
 public:
     Layout(const fs::path& root, std::string_view name);
+
+    std::string_view package() const { return mName; }
 
     std::set<fs::path> all_files() const;
 

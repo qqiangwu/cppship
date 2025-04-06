@@ -65,6 +65,9 @@ bool cmd::BuildContext::is_expired(const fs::path& path) const
 std::optional<std::string> cmd::BuildContext::get_active_package() const
 {
     if (package_root == root) {
+        if (const auto* p = manifest.get_if_package()) {
+            return std::make_optional<std::string>(p->name());
+        }
         return std::nullopt;
     }
 
