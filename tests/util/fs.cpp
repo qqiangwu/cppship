@@ -1,6 +1,6 @@
-#include <gtest/gtest.h>
-
 #include "cppship/util/fs.h"
+
+#include <gtest/gtest.h>
 
 using namespace cppship;
 

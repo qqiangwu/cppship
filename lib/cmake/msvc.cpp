@@ -1,7 +1,8 @@
 #include "cppship/cmake/msvc.h"
-#include "cppship/util/io.h"
 
 #include <boost/algorithm/string.hpp>
+
+#include "cppship/util/io.h"
 
 using namespace cppship;
 

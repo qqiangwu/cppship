@@ -1,3 +1,5 @@
+#include "cppship/cmd/bench.h"
+
 #include <cstdlib>
 
 #include <boost/process/system.hpp>
@@ -8,7 +10,6 @@
 
 #include "cppship/cmake/msvc.h"
 #include "cppship/cmake/naming.h"
-#include "cppship/cmd/bench.h"
 #include "cppship/cmd/build.h"
 #include "cppship/core/manifest.h"
 #include "cppship/util/fs.h"

@@ -1,3 +1,5 @@
+#include "cppship/cmd/cmake.h"
+
 #include <cstdlib>
 
 #include <boost/algorithm/string/replace.hpp>
@@ -6,7 +8,6 @@
 
 #include "cppship/cmake/generator.h"
 #include "cppship/cmd/build.h"
-#include "cppship/cmd/cmake.h"
 #include "cppship/core/resolver.h"
 #include "cppship/util/io.h"
 #include "cppship/util/log.h"
@@ -30,7 +31,8 @@ int cmd::run_cmake(const CmakeOptions&)
 
     ResolvedDependencies deps = toml::get<ResolvedDependencies>(toml::parse(ctx.dependency_file));
     const auto declared_deps = concat(result.dependencies, result.dev_dependencies) | ranges::to<std::vector>();
-    CmakeGenerator gen(&ctx.layout, ctx.manifest,
+    CmakeGenerator gen(&ctx.layout,
+        ctx.manifest,
         GeneratorOptions {
             .deps = cmake::resolve_deps(result.dependencies, deps),
             .dev_deps = cmake::resolve_deps(result.dev_dependencies, deps),

@@ -1,13 +1,14 @@
 #pragma once
 
-#include "cppship/core/dependency.h"
-#include "cppship/core/manifest.h"
-
 #include <functional>
-#include <gsl/pointers>
 #include <queue>
 #include <set>
 #include <vector>
+
+#include <gsl/pointers>
+
+#include "cppship/core/dependency.h"
+#include "cppship/core/manifest.h"
 
 namespace cppship {
 

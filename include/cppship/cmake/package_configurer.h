@@ -1,8 +1,8 @@
 #pragma once
 
-#include "cppship/core/dependency.h"
-
 #include <functional>
+
+#include "cppship/core/dependency.h"
 
 namespace cppship::cmake {
 

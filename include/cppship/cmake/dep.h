@@ -1,9 +1,9 @@
 #pragma once
 
-#include "cppship/core/dependency.h"
-
 #include <string>
 #include <vector>
+
+#include "cppship/core/dependency.h"
 
 namespace cppship::cmake {
 

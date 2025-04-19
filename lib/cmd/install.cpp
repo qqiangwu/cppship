@@ -1,10 +1,11 @@
+#include "cppship/cmd/install.h"
+
 #include <cstdlib>
 
 #include <gsl/narrow>
 #include <spdlog/spdlog.h>
 
 #include "cppship/cmd/build.h"
-#include "cppship/cmd/install.h"
 #include "cppship/core/manifest.h"
 #include "cppship/util/fs.h"
 #include "cppship/util/log.h"

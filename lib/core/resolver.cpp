@@ -1,12 +1,13 @@
 #include "cppship/core/resolver.h"
-#include "cppship/core/manifest.h"
-#include "cppship/util/io.h"
-#include "cppship/util/log.h"
-#include "cppship/util/repo.h"
 
 #include <fmt/format.h>
 #include <range/v3/action/push_back.hpp>
 #include <range/v3/action/reverse.hpp>
+
+#include "cppship/core/manifest.h"
+#include "cppship/util/io.h"
+#include "cppship/util/log.h"
+#include "cppship/util/repo.h"
 
 using namespace cppship;
 using namespace fmt::literals;

@@ -1,12 +1,13 @@
 #include "cppship/cmake/package_configurer.h"
+
+#include <fmt/core.h>
+#include <fmt/format.h>
+
 #include "cppship/cmake/lib.h"
 #include "cppship/core/layout.h"
 #include "cppship/core/manifest.h"
 #include "cppship/util/io.h"
 #include "cppship/util/repo.h"
-
-#include <fmt/core.h>
-#include <fmt/format.h>
 
 using namespace cppship;
 using namespace fmt::literals;
@@ -27,7 +28,9 @@ void cmake::config_packages(
 add_library({target} INTERFACE IMPORTED)
 target_include_directories({target} INTERFACE {cmake_deps_dir}/{package}/include)
 )",
-                    "target"_a = cmake_target, "package"_a = dep.package, "cmake_deps_dir"_a = options.cmake_deps_dir));
+                    "target"_a = cmake_target,
+                    "package"_a = dep.package,
+                    "cmake_deps_dir"_a = options.cmake_deps_dir));
 
             continue;
         }

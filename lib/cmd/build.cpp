@@ -1,16 +1,4 @@
 #include "cppship/cmd/build.h"
-#include "cppship/cmake/generator.h"
-#include "cppship/cmake/group.h"
-#include "cppship/cmake/package_configurer.h"
-#include "cppship/core/compiler.h"
-#include "cppship/core/dependency.h"
-#include "cppship/core/resolver.h"
-#include "cppship/exception.h"
-#include "cppship/util/cmd.h"
-#include "cppship/util/fs.h"
-#include "cppship/util/git.h"
-#include "cppship/util/io.h"
-#include "cppship/util/log.h"
 
 #include <fstream>
 #include <sstream>
@@ -28,6 +16,19 @@
 #include <range/v3/view/transform.hpp>
 #include <spdlog/spdlog.h>
 #include <toml.hpp>
+
+#include "cppship/cmake/generator.h"
+#include "cppship/cmake/group.h"
+#include "cppship/cmake/package_configurer.h"
+#include "cppship/core/compiler.h"
+#include "cppship/core/dependency.h"
+#include "cppship/core/resolver.h"
+#include "cppship/exception.h"
+#include "cppship/util/cmd.h"
+#include "cppship/util/fs.h"
+#include "cppship/util/git.h"
+#include "cppship/util/io.h"
+#include "cppship/util/log.h"
 
 using namespace cppship;
 using namespace boost::process;
@@ -181,8 +182,10 @@ void cmd::conan_install(const BuildContext& ctx)
         return;
     }
 
-    const auto cmd = fmt::format("conan install {} -of {}/conan -pr {} --build=missing", ctx.build_dir.string(),
-        ctx.profile_dir.string(), ctx.conan_profile_path.string());
+    const auto cmd = fmt::format("conan install {} -of {}/conan -pr {} --build=missing",
+        ctx.build_dir.string(),
+        ctx.profile_dir.string(),
+        ctx.conan_profile_path.string());
 
     status("dependency", "install dependencies: {}", cmd);
     int res = run_cmd(cmd);
@@ -233,7 +236,8 @@ void cmd::cmake_setup(const BuildContext& ctx)
     const auto result = std::move(resolver).resolve();
 
     ResolvedDependencies deps = toml::get<ResolvedDependencies>(toml::parse(ctx.dependency_file));
-    CmakeGenerator gen(&ctx.layout, ctx.manifest,
+    CmakeGenerator gen(&ctx.layout,
+        ctx.manifest,
         GeneratorOptions {
             .deps = cmake::resolve_deps(result.dependencies, deps),
             .dev_deps = cmake::resolve_deps(result.dev_dependencies, deps),
@@ -242,7 +246,10 @@ void cmd::cmake_setup(const BuildContext& ctx)
 
     const std::string cmd = fmt::format("cmake -B {} -S build -DCMAKE_BUILD_TYPE={} -DCMAKE_EXPORT_COMPILE_COMMANDS=ON "
                                         "-DCONAN_GENERATORS_FOLDER={} -DCPPSHIP_DEPS_DIR={}",
-        ctx.profile_dir.string(), ctx.profile, (ctx.profile_dir / "conan").string(), ctx.deps_dir.string());
+        ctx.profile_dir.string(),
+        ctx.profile,
+        (ctx.profile_dir / "conan").string(),
+        ctx.deps_dir.string());
 
     status("config", "config cmake: {}", cmd);
     const int res = run_cmd(cmd);
@@ -291,7 +298,9 @@ std::string_view to_cmake_group(cmd::BuildGroup group, const std::string_view li
 
 int cmd::cmake_build(const BuildContext& ctx, const BuildOptions& options)
 {
-    auto cmd = fmt::format("cmake --build {} -j {} --config {}", ctx.profile_dir.string(), options.max_concurrency,
+    auto cmd = fmt::format("cmake --build {} -j {} --config {}",
+        ctx.profile_dir.string(),
+        options.max_concurrency,
         to_string(options.profile));
     if (options.target) {
         cmd += fmt::format(" --target {}", *options.target);

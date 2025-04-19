@@ -1,8 +1,9 @@
 #include "cppship/core/dependency.h"
-#include "cppship/exception.h"
-#include "cppship/util/string.h"
 
 #include <boost/algorithm/string.hpp>
+
+#include "cppship/exception.h"
+#include "cppship/util/string.h"
 
 using namespace cppship;
 

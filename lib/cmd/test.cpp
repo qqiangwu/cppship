@@ -1,3 +1,5 @@
+#include "cppship/cmd/test.h"
+
 #include <cstdlib>
 
 #include <boost/process/system.hpp>
@@ -6,7 +8,6 @@
 
 #include "cppship/cmake/naming.h"
 #include "cppship/cmd/build.h"
-#include "cppship/cmd/test.h"
 #include "cppship/util/fs.h"
 #include "cppship/util/log.h"
 

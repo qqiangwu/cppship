@@ -1,5 +1,4 @@
 #include "cppship/core/compiler.h"
-#include "cppship/util/cmd.h"
 
 #include <cctype>
 #include <cstdlib>
@@ -7,6 +6,8 @@
 #include <sstream>
 
 #include <boost/algorithm/string.hpp>
+
+#include "cppship/util/cmd.h"
 
 using namespace std::literals;
 using namespace cppship;

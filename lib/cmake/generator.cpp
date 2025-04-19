@@ -1,12 +1,4 @@
 #include "cppship/cmake/generator.h"
-#include "cppship/cmake/bin.h"
-#include "cppship/cmake/cfg_predicate.h"
-#include "cppship/cmake/dep.h"
-#include "cppship/cmake/group.h"
-#include "cppship/cmake/lib.h"
-#include "cppship/cmake/naming.h"
-#include "cppship/core/manifest.h"
-#include "cppship/exception.h"
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/replace.hpp>
@@ -18,6 +10,15 @@
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/concat.hpp>
 #include <range/v3/view/transform.hpp>
+
+#include "cppship/cmake/bin.h"
+#include "cppship/cmake/cfg_predicate.h"
+#include "cppship/cmake/dep.h"
+#include "cppship/cmake/group.h"
+#include "cppship/cmake/lib.h"
+#include "cppship/cmake/naming.h"
+#include "cppship/core/manifest.h"
+#include "cppship/exception.h"
 
 using namespace ranges::views;
 
