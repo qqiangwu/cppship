@@ -375,6 +375,9 @@ public:
         for (const auto& opt : config.cxxflags) {
             mOut << fmt::format("{}add_compile_options($<$<CONFIG:{}>:{}>)\n", indent, profile, opt);
         }
+        for (const auto& opt : config.linkflags) {
+            mOut << fmt::format("{}add_link_options($<$<CONFIG:{}>:{}>)\n", indent, profile, opt);
+        }
         for (const auto& def : config.definitions) {
             mOut << fmt::format("{}add_compile_definitions($<$<CONFIG:{}>:{}>)\n", indent, profile, def);
         }
@@ -408,6 +411,9 @@ public:
     {
         for (const auto& opt : config.cxxflags) {
             mOut << fmt::format("{}add_compile_options({})\n", indent, opt);
+        }
+        for (const auto& opt : config.linkflags) {
+            mOut << fmt::format("{}add_link_options({}>)\n", indent, opt);
         }
         for (const auto& def : config.definitions) {
             mOut << fmt::format("{}add_compile_definitions({})\n", indent, def);
